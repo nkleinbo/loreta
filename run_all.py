@@ -14,8 +14,8 @@ import _thread
 fullCmdArguments = sys.argv
 argumentList = fullCmdArguments[1:]
 
-unixOptions = "hf:t:o:w:"
-gnuOptions = ["help", "fastqpath=", "tdnafile=", "outputpath=", "webpath="]
+unixOptions = "hf:t:o:w:a:"
+gnuOptions = ["help", "fastqpath=", "tdnafile=", "outputpath=", "webpath=", "allfasta="]
 
 try:
     arguments, values = getopt.getopt(argumentList, unixOptions, gnuOptions)
@@ -38,6 +38,9 @@ for currentArgument, currentValue in arguments:
     elif currentArgument in ("-w", "--webpath"):
         print (("Webpages will be stored in: (%s)") % (currentValue))
         webpath = currentValue
+    elif currentArgument in ("-a", "--allfasta"):
+        print (("Location of fasta containing all sequences of interest: (%s)") % (currentValue))
+        allfasta = currentValue
         
         
 fastq_dict = {}
@@ -61,8 +64,8 @@ for line in fastq_dict:
 #run analysis for each line:
 for line in fastq_dict:
     #_thread.start_new_thread(ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line]))
-    ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line], web_dict[line])
-    #break
+    ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
+    break
 
 #for line in fastq_dict:
 #    ai.summarise_results(out_dict[line])
