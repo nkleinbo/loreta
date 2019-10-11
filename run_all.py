@@ -9,7 +9,6 @@ Created on Wed Oct  2 10:17:35 2019
 import getopt, sys
 import os
 import analyse_insertion as ai
-import _thread
 
 fullCmdArguments = sys.argv
 argumentList = fullCmdArguments[1:]
@@ -65,7 +64,7 @@ for line in fastq_dict:
 for line in fastq_dict:
     #_thread.start_new_thread(ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line]))
     ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
-    break
+    #break
 
 #for line in fastq_dict:
 #    ai.summarise_results(out_dict[line])

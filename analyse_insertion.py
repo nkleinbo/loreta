@@ -8,7 +8,7 @@ Created on Wed Sep 11 14:45:04 2019
 
 import os
 import re
-
+import visualisation as vis
 
 #move to seperate module later:
 #wether to be verbose or not:
@@ -32,7 +32,7 @@ def run_blast(fastqfile, blastfile, dbfile):
         #blastcommand = "gzip -dc "+fastqfile+" | seqtk seq -A | blastn -db "+tdnafile+" -out "+blastfile+" -outfmt 6 -num_threads "+str(NO_CPUS)+" "+BLAST_PARAMS
         (prefix, extension) = os.path.splitext(fastqfile)
         blastcommand = "seqtk seq -A "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -out "+blastfile+" -outfmt 6 "+BLAST_PARAMS
-        if(extension == "fasta"):
+        if(extension == ".fasta"):
             blastcommand = "cat "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -out "+blastfile+" -outfmt 6 "+BLAST_PARAMS
         print(blastcommand)
         os.system(blastcommand)
@@ -117,55 +117,143 @@ def html_summary(line, statistics, webdir):
     for head in statistics:
         fh.write("<h2>"+head+"</h2>")
         stats = statistics[head]
-        fh.write("<table>")
-        for subhead in stats:
-            fh.write("<tr>")
-            fh.write("<td><b>"+subhead+"</b></td>")
-            fh.write("<td>"+str(stats[subhead])+"</b></td>")
-            fh.write("</tr>")
-        fh.write("</table>")
+        if(head == "assembly_statistics"):
+            fh.write("<table>")
+            header_written = False
+            for l in stats:
+                fh.write("<tr>")
+                for c in l:
+                    if not header_written:
+                        fh.write("<th>"+str(c)+"</th>")
+                    else:
+                        fh.write("<td>"+str(c)+"</td>")
+                header_written = True
+                fh.write("</tr>")
+            fh.write("</table>")
+        elif(head == "contigs_and_blast_results"):
+            for contig in stats:
+                fh.write("<h3>"+contig+", Length: "+stats[contig]['length']+"</h3>")
+                fh.write("<table>")
+                first_hit = stats[contig]["hits"][0]
+                fh.write("<tr>")
+                for desc in first_hit:
+                    fh.write("<th>"+str(desc)+"</th>")
+                fh.write("</tr>")
+                for hit in stats[contig]["hits"]:
+                    fh.write("<tr>")
+                    for d in hit:
+                        fh.write("<td>"+str(hit[d])+"</td>")
+                    fh.write("</tr>")
+                fh.write("</table>")
+        else:
+            fh.write("<table>")
+            for subhead in stats:
+                fh.write("<tr>")
+                fh.write("<td><b>"+subhead+"</b></td>")
+                fh.write("<td>"+str(stats[subhead])+"</b></td>")
+                fh.write("</tr>")
+            fh.write("</table>")
     fh.close()
     
     return index_html
     
 
+def hit_overlaps_other_hit(hit, hits):
+    allowed_overlap = 5
+    s = int(hit["qstart"])
+    e = int(hit["qend"])
+    for h in hits:
+        overlap = 0
+        contained = False
+        s2 = int(h["qstart"])
+        e2 = int(h["qend"])
+        if s < s2:
+            overlap = e - s2
+        else:
+            if e < e2:
+                overlap = e - s
+                contained = True
+            else:
+                overlap = e2 -s
+        if overlap > allowed_overlap:
+            #print ("Overlap: "+str(s)+"/"+str(e)+", "+str(s2)+"/"+str(e2))
+            return True
+    return False
+        
+    
+
 def get_annotation_from_blast_result(contigfile, blastfile):
     contigs = {}
+    #sort blastfile by length/identity:
+    sortedblastfile = blastfile+".sorted"
+    os.system("sort -nr -k 4 -k 3 "+blastfile+" > "+sortedblastfile)
     with open(contigfile, 'r') as fh:
         for line in fh:
-            test = re.match("^>(tig\d+)\slen=(\d+).*", line)
-            if test is not None: 
-                test2 = test.groups()
-                test3 = test2[0]
-                test4 = test2[1]
-                print(test3+"/"+test4)
-                
+            match_line = re.match("^>(tig\d+)\slen=(\d+).*", line)
+            if match_line is not None: 
+                tig_len = match_line.groups()
+                tig = tig_len[0]
+                length = tig_len[1]
+                length_dic = {"length": length}
+                contigs[tig] = length_dic
+    for contig in contigs:
+        hits = []
+        with open(blastfile, 'r') as fh:
+            for line in fh:
+                if(re.match("^"+contig, line)):
+                    hit = {}
+                    (hit["qaccver"], hit["saccver"], hit["pident"], hit["length"], hit["mismatch"], hit["gapopen"], hit["qstart"], hit["qend"], hit["sstart"], hit["send"], hit["evalue"], hit["bitscore"])= line.split()
+                    if not hit_overlaps_other_hit(hit, hits):
+                        hits.append(hit)
+        fh.close()
+        contigs[contig]["hits"] = hits
+    print (contigs)
+    return contigs
 
+     
 
-def analyse_insertion (line, fastqfile, tdnafile, allfasta, outdir, webdir):
+def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
     if not (os.path.isdir(outdir)):
         os.mkdir(outdir)
     statistics= {}
     #get statistics for all reads
-    #fastq_stats = get_fastq_stats(fastqfile)
-    #statistics["fastq_stats"] = fastq_stats
+    fastq_stats = get_fastq_stats(fastqfile)
+    statistics["fastq_stats"] = fastq_stats
     #run BLAST
-    blastfile = os.path.join(outdir, line+".bls");
+    blastfile = os.path.join(outdir, lineid+".bls");
     idfile = run_blast(fastqfile, blastfile, tdnafile)
     #filter FASTQ
-    filtered_fastq = os.path.join(outdir, line+".fastq")
+    filtered_fastq = os.path.join(outdir, lineid+".fastq")
     filter_sequences(idfile, fastqfile, filtered_fastq)
     filtered_fastq_stats = get_fastq_stats(filtered_fastq)
     statistics["filtered_fastq_stats"] = filtered_fastq_stats
     #run canu:
     contigfile = run_canu(filtered_fastq, statistics, outdir)
+
+    #get assembly statistics:
+    (p1,s1) = os.path.splitext(contigfile)
+    assemblytigfile = p1+".layout.tigInfo"
+    assembly_statistics = []
+    with open (assemblytigfile, "r") as fh:
+        for line in fh:
+            assembly_statistics_line = line.split()
+            assembly_statistics.append(assembly_statistics_line)
+    fh.close()
+    print(assembly_statistics)
+    statistics["assembly_statistics"] = assembly_statistics
     
-    blast_vs_allfasta = os.path.join(outdir, line+"_assembly_vs_allfasta.bls");
+    
+    blast_vs_allfasta = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
     run_blast(contigfile, blast_vs_allfasta, allfasta)
 
-    get_annotation_from_blast_result(contigfile, blast_vs_allfasta)
+    contigs = get_annotation_from_blast_result(contigfile, blast_vs_allfasta)
     
-        
+    statistics["contigs_and_blast_results"] = contigs
+    
+    for c in contigs:        
+        imagename = os.path.join(outdir, c+".png")
+        draw_insertion(imagename, contigs[c])
+      
     html_summary(line, statistics, webdir)
      
 
