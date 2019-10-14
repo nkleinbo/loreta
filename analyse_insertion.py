@@ -21,6 +21,12 @@ BLAST_PARAMS = " -perc_identity 85"
 GENOME_SIZE=145000000
 #write fastq files WITHOUT T-DNA:
 WRITE_FASTQ_WITHOUT_TDNA = False;
+#allowed overlap of BLAST results for contig annotation:
+ALLOWED_OVERLAP = 10
+#allowed identity of BLAST results for contig annotation:
+ALLOWED_IDENTITY = 90
+#use corrected reads as input:
+CORRECTED_READS = True
 
 
 #runs BLAST and returns an ID file with all hits
@@ -60,7 +66,10 @@ def run_canu(filtered_fastq, statistics, outdir):
         genome_size=int((longest_read * coverage_for_longest_read) / 11)
     if not (os.path.isfile(contigfile)):
         if BE_VERBOSE: print ("Starting asssembly for "+filtered_fastq+"...")
-        canu_command="canu -d "+assemblydir+" -p "+projectname+" -nanopore-raw "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
+        if CORRECTED_READS:
+            canu_command="canu trim-assemble -d "+assemblydir+" -p "+projectname+" -nanopore-corrected "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
+        else:
+            canu_command="canu -d "+assemblydir+" -p "+projectname+" -nanopore-raw "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
         os.system(canu_command)
         if BE_VERBOSE: print ("Done asssembly for "+filtered_fastq+".")
     else:
@@ -162,7 +171,7 @@ def html_summary(lineid, statistics, webdir):
                     fh.write("</tr>")
                 fh.write("</table>")
                 fh.write("<h4>Visualisation for "+contig+"</h4>")
-                fh.wirte("<img href="+stats[contig]["image"]+"/>")
+                fh.write("<img src='"+stats[contig]["image"]+"'/>")
         else:
             fh.write("<table>")
             for subhead in stats:
@@ -177,7 +186,6 @@ def html_summary(lineid, statistics, webdir):
     
 
 def hit_overlaps_other_hit(hit, hits):
-    allowed_overlap = 5
     s = int(hit["qstart"])
     e = int(hit["qend"])
     for h in hits:
@@ -193,7 +201,7 @@ def hit_overlaps_other_hit(hit, hits):
                 contained = True
             else:
                 overlap = e2 -s
-        if overlap > allowed_overlap:
+        if overlap > ALLOWED_OVERLAP:
             #print ("Overlap: "+str(s)+"/"+str(e)+", "+str(s2)+"/"+str(e2))
             return True
     return False
@@ -216,14 +224,26 @@ def get_annotation_from_blast_result(contigfile, blastfile):
                 contigs[tig] = length_dic
     for contig in contigs:
         hits = []
-        with open(blastfile, 'r') as fh:
+        borders = []
+        with open(sortedblastfile, 'r') as fh:
             for line in fh:
                 if(re.match("^"+contig, line)):
                     hit = {}
                     (hit["qaccver"], hit["saccver"], hit["pident"], hit["length"], hit["mismatch"], hit["gapopen"], hit["qstart"], hit["qend"], hit["sstart"], hit["send"], hit["evalue"], hit["bitscore"])= line.split()
-                    if not hit_overlaps_other_hit(hit, hits):
+                    if(float(hit["pident"]) < ALLOWED_IDENTITY):
+                        #print ("Skipping due to identity hit "+hit["qaccver"]+" on "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"])
+                        continue
+                    #print ("Examining hit "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"])
+                    if(hit["qaccver"] in ["LB","RB"]):
+                        borders.append(hit)
+                    elif not hit_overlaps_other_hit(hit, hits):
+                        #print ("Hit "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"]+" is ok!")
                         hits.append(hit)
+                    #else:
+                        #print ("Hit "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"]+" overlaps!")
         fh.close()
+        for b in borders:
+            hits.append(b)
         contigs[contig]["hits"] = hits
     print (contigs)
     return contigs
@@ -257,7 +277,6 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
             assembly_statistics_line = line.split()
             assembly_statistics.append(assembly_statistics_line)
     fh.close()
-    print(assembly_statistics)
     statistics["assembly_statistics"] = assembly_statistics
     
     
@@ -269,12 +288,13 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
     statistics["contigs_and_blast_results"] = contigs
     
     for c in contigs:        
-        imagename = os.path.join(outdir, c+".png")
+        imagename = os.path.join(webdir, c+".png")
         if BE_VERBOSE: print ("Creating image "+imagename+"for "+lineid+".")
         vis.draw_insertion(imagename, contigs[c])
         if BE_VERBOSE: print ("Done creating image "+imagename+"for "+lineid+".")
-        statistics["contigs_and_blast_results"][c]["image"] = imagename
-    html_summary(line, statistics, webdir)
+        statistics["contigs_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
+    html_summary(lineid, statistics, webdir)
+    return contigfile
      
 
 #qaccver saccver pident length mismatch gapopen qstart qend sstart send evalue bitscore

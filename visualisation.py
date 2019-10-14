@@ -2,7 +2,8 @@ from PIL import Image, ImageDraw, ImageFont
 import math
 
 WIDTH = 1200
-HEIGHT = 100
+HEIGHT = 200
+OFFSET = 50
 LINEWIDTH = 5
 FEATUREWIDTH = 16
 FONTSIZE = 12
@@ -42,15 +43,15 @@ COLOURS = {
     "vector": (150,0,0,1),
     "adapter": (100,0,0,1),
     "plant": (0,200,0,1),
-    "chlorplast": (0,155,0,1),
+    "chloroplast": (0,155,0,1),
     "mitochondria": (0,0,255,1),
     "LB": (255,0,0,1),
     "RB": (255,0,0,1)
 }
 
 def draw_feature(draw, font, hit_dict, contig_length, top):
-    x1 = math.floor(WIDTH * hit_dict["qstart"] / contig_length)
-    x2 = math.ceil(WIDTH * hit_dict["qend"] / contig_length)
+    x1 = math.floor((WIDTH-2*OFFSET) * hit_dict["qstart"] / contig_length)+OFFSET
+    x2 = math.ceil((WIDTH-2*OFFSET) * hit_dict["qend"] / contig_length)+OFFSET
     y_line = HEIGHT / 2
 
     label = hit_dict["hitname"]+":\n"+str(hit_dict["sstart"])+"-"+str(hit_dict["send"])
@@ -86,7 +87,7 @@ def draw_insertion(image_name, contig_dict):
     draw = ImageDraw.Draw(im)
     font = ImageFont.truetype(FONT, FONTSIZE)
     y = HEIGHT / 2
-    draw.line((0, y, WIDTH, y), width=LINEWIDTH, fill=(0,0,0))
+    draw.line((0+OFFSET, y, WIDTH-OFFSET, y), width=LINEWIDTH, fill=(0,0,0))
     #create feature dicr:
     top = False;
     for hit in sorted(blast_hits, key = lambda i: i["qstart"]):
@@ -97,7 +98,6 @@ def draw_insertion(image_name, contig_dict):
                     "send": int(hit["send"]), 
                     "f_type": BLAST_FEATURE_MAPPING[hit["saccver"]]
                     }
-        print("Drawing "+str(hit_dict))
         draw_feature(draw, font, hit_dict, contig_length, top)
         top = not top;
     im.save(image_name, "PNG")

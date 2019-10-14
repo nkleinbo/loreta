@@ -63,8 +63,9 @@ for line in fastq_dict:
 #run analysis for each line:
 for line in fastq_dict:
     #_thread.start_new_thread(ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line]))
-    ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
-    break
+    contigfile = ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
+    #contigfile2 = ai.analyse_insertion(line, fastq_dict[line], contigfile, allfasta, out_dict[line]+"_2", web_dict[line]+"_2")
+    
 
 #for line in fastq_dict:
 #    ai.summarise_results(out_dict[line])
