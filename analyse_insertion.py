@@ -19,6 +19,8 @@ NO_CPUS = 64;
 BLAST_PARAMS = " -perc_identity 85"
 #expected genome size:
 GENOME_SIZE=145000000
+#write fastq files WITHOUT T-DNA:
+WRITE_FASTQ_WITHOUT_TDNA = False;
 
 
 #runs BLAST and returns an ID file with all hits
@@ -68,14 +70,28 @@ def run_canu(filtered_fastq, statistics, outdir):
 #print "Done."
 
 
-def filter_sequences(idfile, fastqfile, filtered_fastq):
+def filter_sequences(idfile, fastqfile, filtered_fastq, write_remaining=False):
     if not (os.path.isfile(filtered_fastq)):
         if BE_VERBOSE: print ("Grepping sequences from "+fastqfile+"...")
         os.system("grep -A 3 --no-group-separator -f "+idfile+" "+fastqfile+" > "+filtered_fastq)
         if BE_VERBOSE: print ("Done grepping sequences from "+fastqfile+".")
     else:
         if BE_VERBOSE: print ("Skipping grepping sequences from "+fastqfile+".")
-    os.system("wc -l "+fastqfile)
+    if(write_remaining):
+        prefix, ext = os.path.splitext(fastqfile)
+        remaining_fastqfile = prefix+".notdna.fastq"
+        remaining_idfile = prefix+".notdna.ids"
+        if not (os.path.isfile(remaining_fastqfile)):
+            if BE_VERBOSE: print ("Grepping non-T-DNA sequences from "+fastqfile+"...")
+            os.system("grep '^@.*runid' "+fastqfile+" | grep -v -f "+idfile+" > "+remaining_idfile)
+            os.system("grep -A 3 --no-group-separator -f "+remaining_idfile+" "+fastqfile+" > "+remaining_fastqfile) 
+            if BE_VERBOSE: print ("Done grepping non-T-DNA sequences from "+fastqfile+".")
+        else:
+            if BE_VERBOSE: print ("Skipping grepping non-T-DNA sequences from "+fastqfile+".")
+        
+    
+    
+
 
 def get_fastq_stats(fastqfile):
     stats = {}
@@ -108,12 +124,12 @@ def get_fastq_stats(fastqfile):
 def summarise_results(outdir):
     print ("Summary "+outdir)
 
-def html_summary(line, statistics, webdir):
+def html_summary(lineid, statistics, webdir):
     if not (os.path.isdir(webdir)):
         os.mkdir(webdir)    
     index_html = os.path.join(webdir, "index.html")
     fh = open(index_html, "w+")
-    fh.write("<h1>Results for "+line+"</h1>")
+    fh.write("<h1>Results for "+lineid+"</h1>")
     for head in statistics:
         fh.write("<h2>"+head+"</h2>")
         stats = statistics[head]
@@ -145,6 +161,8 @@ def html_summary(line, statistics, webdir):
                         fh.write("<td>"+str(hit[d])+"</td>")
                     fh.write("</tr>")
                 fh.write("</table>")
+                fh.write("<h4>Visualisation for "+contig+"</h4>")
+                fh.wirte("<img href="+stats[contig]["image"]+"/>")
         else:
             fh.write("<table>")
             for subhead in stats:
@@ -224,7 +242,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
     idfile = run_blast(fastqfile, blastfile, tdnafile)
     #filter FASTQ
     filtered_fastq = os.path.join(outdir, lineid+".fastq")
-    filter_sequences(idfile, fastqfile, filtered_fastq)
+    filter_sequences(idfile, fastqfile, filtered_fastq, WRITE_FASTQ_WITHOUT_TDNA)
     filtered_fastq_stats = get_fastq_stats(filtered_fastq)
     statistics["filtered_fastq_stats"] = filtered_fastq_stats
     #run canu:
@@ -252,8 +270,10 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
     
     for c in contigs:        
         imagename = os.path.join(outdir, c+".png")
-        draw_insertion(imagename, contigs[c])
-      
+        if BE_VERBOSE: print ("Creating image "+imagename+"for "+lineid+".")
+        vis.draw_insertion(imagename, contigs[c])
+        if BE_VERBOSE: print ("Done creating image "+imagename+"for "+lineid+".")
+        statistics["contigs_and_blast_results"][c]["image"] = imagename
     html_summary(line, statistics, webdir)
      
 
