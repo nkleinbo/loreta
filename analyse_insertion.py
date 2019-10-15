@@ -29,6 +29,13 @@ ALLOWED_IDENTITY = 90
 CORRECTED_READS = True
 
 
+def get_id_file(blastfile):
+    if BE_VERBOSE: print ("Creating idfile for "+blastfile+"...")
+    idfile = blastfile+".ids"
+    os.system("cut -f1 "+blastfile+" | sort | uniq > "+idfile)
+    if BE_VERBOSE: print("Done IDFILE "+blastfile+".")
+    return idfile 
+
 #runs BLAST and returns an ID file with all hits
 def run_blast(fastqfile, blastfile, dbfile):
     #check if makeblastdb has been run
@@ -47,11 +54,7 @@ def run_blast(fastqfile, blastfile, dbfile):
         if BE_VERBOSE:  "Done BLASTING "+fastqfile+"."
     else:
         if BE_VERBOSE: print ("Skipping BLAST for "+fastqfile+".");
-    if BE_VERBOSE: print ("Creating idfile for "+blastfile+"...")
-    idfile = blastfile+".ids"
-    os.system("cut -f1 "+blastfile+" | sort | uniq > "+idfile)
-    if BE_VERBOSE: print("Done IDFILE "+fastqfile+".")
-    return idfile
+    return blastfile
 
 def run_canu(filtered_fastq, statistics, outdir):
     assemblydir = os.path.join(outdir, "assembly")
@@ -67,7 +70,7 @@ def run_canu(filtered_fastq, statistics, outdir):
     if not (os.path.isfile(contigfile)):
         if BE_VERBOSE: print ("Starting asssembly for "+filtered_fastq+"...")
         if CORRECTED_READS:
-            canu_command="canu trim-assemble -d "+assemblydir+" -p "+projectname+" -nanopore-corrected "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
+            canu_command="canu -assemble -d "+assemblydir+" -p "+projectname+" -nanopore-corrected "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
         else:
             canu_command="canu -d "+assemblydir+" -p "+projectname+" -nanopore-raw "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
         os.system(canu_command)
@@ -185,6 +188,8 @@ def html_summary(lineid, statistics, webdir):
     return index_html
     
 
+
+
 def hit_overlaps_other_hit(hit, hits):
     s = int(hit["qstart"])
     e = int(hit["qend"])
@@ -222,6 +227,14 @@ def get_annotation_from_blast_result(contigfile, blastfile):
                 length = tig_len[1]
                 length_dic = {"length": length}
                 contigs[tig] = length_dic
+            else:
+                match_line = re.match("^>(tig\d+):(\d+)-(\d+)", line)
+                if match_line is not None: 
+                    tig_len = match_line.groups()
+                    tig = tig_len[0]
+                    length = int(tig_len[2])-int(tig_len[1])
+                    length_dic = {"length": str(length)}
+                    contigs[tig] = length_dic
     for contig in contigs:
         hits = []
         borders = []
@@ -245,40 +258,162 @@ def get_annotation_from_blast_result(contigfile, blastfile):
         for b in borders:
             hits.append(b)
         contigs[contig]["hits"] = hits
-    print (contigs)
+
+    bedfile = contigfile+".bed"
+    fh = open(bedfile, "w+")
+    for tdna in unique_tdnas:
+        (tdna_subject,tdna_start, tdna_end) = tdna
+        start = tdna_start-extension
+        if start < 0: start = 0
+        end = tdna_end+extension
+        if end > contigs_length[tdna_subject]: end = contigs_length[tdna_subject]
+        fh.write(tdna_subject+"\t"+str(start)+"\t"+str(end)+"\n")
+    fh.close()
+    contigfile = os.path.join(outdir, lineid+"_contigs.fasta")
+    os.system("bedtools getfasta -fi "+assemblyfile+" -bed "+bedfile+" -fo "+contigfile)
+    
+    
     return contigs
 
+
+def create_contigfile_from_assembly(assemblyfile, blastfile, outdir, lineid, extension=50000):
+    hits = []
+    with open(blastfile, 'r') as fh:
+        for line in fh:
+            hit = {}
+            split = line.split()
+            if len(split) < 12: continue
+            if not (re.match("tig", line)): continue
+            (hit["qaccver"], hit["saccver"], hit["pident"], hit["length"], hit["mismatch"], hit["gapopen"], hit["qstart"], hit["qend"], hit["sstart"], hit["send"], hit["evalue"], hit["bitscore"])= split
+            if(float(hit["pident"]) > 95.0 and int(hit["length"]) > 50):
+                hits.append(hit)
+    tdna_ranges = []
+    for hit in hits:
+        (subjectname, qstart, qend) = (hit["qaccver"], int(hit["qstart"]), int(hit["qend"]))
+        #check if already annotated:
+        already_there = False
+        for tdna in tdna_ranges:
+            (tdna_subject,tdna_start, tdna_end) = tdna
+            if(tdna_subject == subjectname):
+                contained = False
+                if qstart < tdna_start:
+                    overlap = qend - tdna_start
+                else:
+                    if qend < tdna_end:
+                        overlap = qend - qstart
+                        contained = True
+                    else:
+                        overlap = tdna_end - qstart
+                if(overlap > -10000 and not contained):
+                    already_there = True
+                    if(qstart < tdna_start):
+                        tdna[1] = qstart
+                    if(qend > tdna_end):
+                        tdna[2] = qend
+        if not already_there:
+            new_tdna = [subjectname, qstart, qend]
+            tdna_ranges.append(new_tdna)
+    #merge nearby:
+    unique_tdnas = tdna_ranges
+    finished = False
+    while not finished:
+        finished = True
+        for tdna1 in unique_tdnas:
+            (tdna_subject1,tdna_start1, tdna_end1) = tdna1
+            for tdna2 in tdna_ranges:
+                (tdna_subject2,tdna_start2, tdna_end2) = tdna2
+                if(tdna_subject1 == tdna_subject2 and tdna_start1 == tdna_start2 and tdna_end1 == tdna_end2):
+                    continue
+                if(tdna_subject1 == tdna_subject2):
+                    contained = False
+                    if tdna_start1 < tdna_start2:
+                        overlap = tdna_end1 - tdna_start2
+                    else:
+                        if tdna_end1 < tdna_end2:
+                            overlap = tdna_end1 - tdna_start1
+                            contained = True
+                        else:
+                            overlap = tdna_end2 - tdna_start1
+                    if(overlap > -10000 and not contained):
+                        finished = False
+                        if(tdna_start2 < tdna_start1):
+                            tdna1[1] = tdna_start2
+                        if(tdna_end1 > tdna_end2):
+                            tdna1[2] = tdna_end2
+        #remove duplicates:
+        new_unique = []
+        for tdna1 in unique_tdnas:
+            (tdna_subject1,tdna_start1, tdna_end1) = tdna1
+            its_in = False;
+            for tdna2 in new_unique:
+                (tdna_subject2,tdna_start2, tdna_end2) = tdna2
+                if(tdna_subject1 == tdna_subject2 and tdna_start1 == tdna_start2 and tdna_end1 == tdna_end2):
+                    its_in = True
+            if not its_in:
+                new_unique.append(tdna1)
+        unique_tdnas = new_unique
+        tdna_ranges = new_unique
+    
+    os.system("samtools faidx "+assemblyfile)
+    contigs_length = {}
+    with open(assemblyfile+".fai", 'r') as fh:
+        for line in fh:
+            (contig, c_length, a, b, c) = line.split()
+            contigs_length[contig] = int(c_length)
+  
+    bedfile = blastfile+".bed"
+    fh = open(bedfile, "w+")
+    for tdna in unique_tdnas:
+        (tdna_subject,tdna_start, tdna_end) = tdna
+        start = tdna_start-extension
+        if start < 0: start = 0
+        end = tdna_end+extension
+        if end > contigs_length[tdna_subject]: end = contigs_length[tdna_subject]
+        fh.write(tdna_subject+"\t"+str(start)+"\t"+str(end)+"\n")
+    fh.close()
+    contigfile = os.path.join(outdir, lineid+"_contigs.fasta")
+    os.system("bedtools getfasta -fi "+assemblyfile+" -bed "+bedfile+" -fo "+contigfile)
+    return contigfile        
+    
+    
      
 
-def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
+def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, assembly_input=False):
     if not (os.path.isdir(outdir)):
         os.mkdir(outdir)
     statistics= {}
     #get statistics for all reads
-    fastq_stats = get_fastq_stats(fastqfile)
-    statistics["fastq_stats"] = fastq_stats
+    if not assembly_input:
+        fastq_stats = get_fastq_stats(fastqfile)
+        statistics["fastq_stats"] = fastq_stats
     #run BLAST
     blastfile = os.path.join(outdir, lineid+".bls");
-    idfile = run_blast(fastqfile, blastfile, tdnafile)
-    #filter FASTQ
-    filtered_fastq = os.path.join(outdir, lineid+".fastq")
-    filter_sequences(idfile, fastqfile, filtered_fastq, WRITE_FASTQ_WITHOUT_TDNA)
-    filtered_fastq_stats = get_fastq_stats(filtered_fastq)
-    statistics["filtered_fastq_stats"] = filtered_fastq_stats
-    #run canu:
-    contigfile = run_canu(filtered_fastq, statistics, outdir)
-
-    #get assembly statistics:
-    (p1,s1) = os.path.splitext(contigfile)
-    assemblytigfile = p1+".layout.tigInfo"
-    assembly_statistics = []
-    with open (assemblytigfile, "r") as fh:
-        for line in fh:
-            assembly_statistics_line = line.split()
-            assembly_statistics.append(assembly_statistics_line)
-    fh.close()
-    statistics["assembly_statistics"] = assembly_statistics
-    
+    run_blast(fastqfile, blastfile, tdnafile)
+    if not assembly_input:
+        idfile = get_id_file(blastfile)
+        #filter FASTQ
+        filtered_fastq = os.path.join(outdir, lineid+".fastq")
+        filter_sequences(idfile, fastqfile, filtered_fastq, WRITE_FASTQ_WITHOUT_TDNA)
+        filtered_fastq_stats = get_fastq_stats(filtered_fastq)
+        statistics["filtered_fastq_stats"] = filtered_fastq_stats
+        #run canu:
+        contigfile = run_canu(filtered_fastq, statistics, outdir)
+        #get assembly statistics:
+        (p1,s1) = os.path.splitext(contigfile)
+        assemblytigfile = p1+".layout.tigInfo"
+        assembly_statistics = []
+        if(os.path.isfile(assemblytigfile)):
+            with open (assemblytigfile, "r") as fh:
+                for line in fh:
+                    assembly_statistics_line = line.split()
+                    assembly_statistics.append(assembly_statistics_line)
+            fh.close()
+            statistics["assembly_statistics"] = assembly_statistics
+    #else - input is assembly
+    else:
+        #create contigfile from assembly, +- 50kb from insertion
+        contigfile = create_contigfile_from_assembly(fastqfile, blastfile, outdir, lineid)
+   
     
     blast_vs_allfasta = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
     run_blast(contigfile, blast_vs_allfasta, allfasta)
@@ -286,6 +421,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir):
     contigs = get_annotation_from_blast_result(contigfile, blast_vs_allfasta)
     
     statistics["contigs_and_blast_results"] = contigs
+    print( statistics)
     
     for c in contigs:        
         imagename = os.path.join(webdir, c+".png")
