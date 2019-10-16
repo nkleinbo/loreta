@@ -16,7 +16,7 @@ BE_VERBOSE = True;
 #no of CPUs to use at max:
 NO_CPUS = 64;
 #BLAST parameters:
-BLAST_PARAMS = " -perc_identity 85"
+BLAST_PARAMS = " -perc_identity 85 -evalue 1e-150 -min_raw_gapped_score 1000"
 #expected genome size:
 GENOME_SIZE=145000000
 #write fastq files WITHOUT T-DNA:
@@ -26,7 +26,8 @@ ALLOWED_OVERLAP = 10
 #allowed identity of BLAST results for contig annotation:
 ALLOWED_IDENTITY = 90
 #use corrected reads as input:
-CORRECTED_READS = True
+CORRECTED_READS = False
+#
 
 
 def get_id_file(blastfile):
@@ -46,9 +47,9 @@ def run_blast(fastqfile, blastfile, dbfile):
         if BE_VERBOSE: print ("BLASTING "+fastqfile+" ...")
         #blastcommand = "gzip -dc "+fastqfile+" | seqtk seq -A | blastn -db "+tdnafile+" -out "+blastfile+" -outfmt 6 -num_threads "+str(NO_CPUS)+" "+BLAST_PARAMS
         (prefix, extension) = os.path.splitext(fastqfile)
-        blastcommand = "seqtk seq -A "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -out "+blastfile+" -outfmt 6 "+BLAST_PARAMS
+        blastcommand = "seqtk seq -A "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+BLAST_PARAMS+" > "+blastfile
         if(extension == ".fasta"):
-            blastcommand = "cat "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -out "+blastfile+" -outfmt 6 "+BLAST_PARAMS
+            blastcommand = "cat "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+BLAST_PARAMS+" > "+blastfile
         print(blastcommand)
         os.system(blastcommand)
         if BE_VERBOSE:  "Done BLASTING "+fastqfile+"."
@@ -210,14 +211,40 @@ def hit_overlaps_other_hit(hit, hits):
             #print ("Overlap: "+str(s)+"/"+str(e)+", "+str(s2)+"/"+str(e2))
             return True
     return False
-        
-    
+ 
+       
+def get_length_for_reads(fastqfile, fasta=False):
+    reads = {}
+    with open (fastqfile, "r") as fh:
+        linecount = 0;
+        read = ""
+        for line in fh:
+            linecount += 1
+            if linecount == 1:
+                match_line = re.match("^@(\S+)\runid=.*", line)
+                if match_line is not None: 
+                    read_match = match_line.groups()
+                    read = read_match[0]
+                elif linecount == 2:
+                    reads[read] = {"length": len(line)}
+                elif linecount == 4:
+                    linecount = 0
+    return reads
 
-def get_annotation_from_blast_result(contigfile, blastfile):
+def get_mappings_from_blast_results(fastqfile, contigfile, blastfile, fasta=False):
+    #get length for reads:
+    
+    
+    reads = get_length_for_reads(fastqfile, fasta=fasta)
+
+    mappings = get_contigs_with_length(contigfile)
+    mappings = get_non_overlapping_hits_from_blast_result(contigs, blastfile)
+    
+    return (reads, mappings)
+                    
+
+def get_contigs_with_length(contigfile):
     contigs = {}
-    #sort blastfile by length/identity:
-    sortedblastfile = blastfile+".sorted"
-    os.system("sort -nr -k 4 -k 3 "+blastfile+" > "+sortedblastfile)
     with open(contigfile, 'r') as fh:
         for line in fh:
             match_line = re.match("^>(tig\d+)\slen=(\d+).*", line)
@@ -235,9 +262,14 @@ def get_annotation_from_blast_result(contigfile, blastfile):
                     length = int(tig_len[2])-int(tig_len[1])
                     length_dic = {"length": str(length)}
                     contigs[tig] = length_dic
+    return contigs
+
+def get_non_overlapping_hits_from_blast_result(contigs, blastfile):    
+    sortedblastfile = blastfile+".sorted"
+    os.system("sort -nr -k 12 -k 3 "+blastfile+" > "+sortedblastfile)
     for contig in contigs:
         hits = []
-        borders = []
+        #borders = []
         with open(sortedblastfile, 'r') as fh:
             for line in fh:
                 if(re.match("^"+contig, line)):
@@ -247,31 +279,38 @@ def get_annotation_from_blast_result(contigfile, blastfile):
                         #print ("Skipping due to identity hit "+hit["qaccver"]+" on "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"])
                         continue
                     #print ("Examining hit "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"])
-                    if(hit["qaccver"] in ["LB","RB"]):
-                        borders.append(hit)
+                   # if(hit["qaccver"] in ["LB","RB"]):
+                        #borders.append(hit)
                     elif not hit_overlaps_other_hit(hit, hits):
                         #print ("Hit "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"]+" is ok!")
                         hits.append(hit)
                     #else:
                         #print ("Hit "+hit["qaccver"]+" on "+hit["saccver"]+" length "+hit["length"]+" overlaps!")
         fh.close()
-        for b in borders:
-            hits.append(b)
+#        for b in borders:
+#            hits.append(b)
         contigs[contig]["hits"] = hits
-
-    bedfile = contigfile+".bed"
-    fh = open(bedfile, "w+")
-    for tdna in unique_tdnas:
-        (tdna_subject,tdna_start, tdna_end) = tdna
-        start = tdna_start-extension
-        if start < 0: start = 0
-        end = tdna_end+extension
-        if end > contigs_length[tdna_subject]: end = contigs_length[tdna_subject]
-        fh.write(tdna_subject+"\t"+str(start)+"\t"+str(end)+"\n")
-    fh.close()
-    contigfile = os.path.join(outdir, lineid+"_contigs.fasta")
-    os.system("bedtools getfasta -fi "+assemblyfile+" -bed "+bedfile+" -fo "+contigfile)
+    return contigs
     
+
+def get_annotation_from_blast_result(contigfile, blastfile, allfasta, references_file):
+    contigs = get_contigs_with_length(contigfile)
+    #sort blastfile by length/identity:
+
+    contigs = get_non_overlapping_hits_from_blast_result(contigs, blastfile) 
+    
+    #write fasta with references:
+    bedfile = blastfile+".bed"
+    fh = open(bedfile, "w")
+    for c in contigs:
+        for hit in contigs[c]["hits"]:
+            (subject, start, end) = (hit["saccver"], hit["sstart"], hit["send"])
+            if int(start) < int(end):
+                fh.write(subject+"\t"+str(start)+"\t"+str(end)+"\n")
+            else:
+                fh.write(subject+"\t"+str(end)+"\t"+str(start)+"\n")
+    fh.close()
+    os.system("bedtools getfasta -fi "+allfasta+" -bed "+bedfile+" -fo "+references_file)
     
     return contigs
 
@@ -362,7 +401,7 @@ def create_contigfile_from_assembly(assemblyfile, blastfile, outdir, lineid, ext
             contigs_length[contig] = int(c_length)
   
     bedfile = blastfile+".bed"
-    fh = open(bedfile, "w+")
+    fh = open(bedfile, "w")
     for tdna in unique_tdnas:
         (tdna_subject,tdna_start, tdna_end) = tdna
         start = tdna_start-extension
@@ -414,23 +453,37 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
         #create contigfile from assembly, +- 50kb from insertion
         contigfile = create_contigfile_from_assembly(fastqfile, blastfile, outdir, lineid)
    
-    
+    #blast contigs vs all possible targets:
     blast_vs_allfasta = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
     run_blast(contigfile, blast_vs_allfasta, allfasta)
 
-    contigs = get_annotation_from_blast_result(contigfile, blast_vs_allfasta)
+    #get annotated contigs and a file containing all matched sequences from possible targets
+    references_file = os.path.join(outdir, lineid+"_with_flanking.fasta")
+    contigs = get_annotation_from_blast_result(contigfile, blast_vs_allfasta, allfasta, references_file)
+    
+    #map reads back to assembly:
+    blast_reads_vs_contigs = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
+    if not (assembly_input):    
+        run_blast(filtered_fastq, blast_reads_vs_contigs, contigfile)
+        (reads, mappings) = get_mappings_from_blast_results(filtered_fastq, blast_reads_vs_contigs, contigfile)
+    elif fastqfile is not None:
+        run_blast(fastqfile, blast_reads_vs_contigs, contigfile)
+        (reads, mappings) = get_mappings_from_blast_results(fastqfile, blast_reads_vs_contigs, contigfile)
+    
     
     statistics["contigs_and_blast_results"] = contigs
-    print( statistics)
+    #print( statistics)
     
-    for c in contigs:        
+    for c in contigs: 
+        if not (os.path.isdir(webdir)):
+            os.mkdir(webdir)    
         imagename = os.path.join(webdir, c+".png")
-        if BE_VERBOSE: print ("Creating image "+imagename+"for "+lineid+".")
+        if BE_VERBOSE: print ("Creating image "+imagename+" for "+lineid+".")
         vis.draw_insertion(imagename, contigs[c])
-        if BE_VERBOSE: print ("Done creating image "+imagename+"for "+lineid+".")
+        if BE_VERBOSE: print ("Done creating image "+imagename+" for "+lineid+".")
         statistics["contigs_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
     html_summary(lineid, statistics, webdir)
-    return contigfile
+    return (contigfile, references_file)
      
 
 #qaccver saccver pident length mismatch gapopen qstart qend sstart send evalue bitscore
