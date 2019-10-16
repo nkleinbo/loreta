@@ -27,7 +27,8 @@ ALLOWED_OVERLAP = 10
 ALLOWED_IDENTITY = 90
 #use corrected reads as input:
 CORRECTED_READS = False
-#
+#bed quality value cutoff for mapping
+MAPPING_QUAL_CUTOFF = 50
 
 
 def get_id_file(blastfile):
@@ -56,6 +57,11 @@ def run_blast(fastqfile, blastfile, dbfile):
     else:
         if BE_VERBOSE: print ("Skipping BLAST for "+fastqfile+".");
     return blastfile
+
+def run_minimap2(fastqfile, contigfile, bedfile):
+    os.system("minimap2 "+contigfile+" "+fastqfile+" -a -t "+str(NO_CPUS)+" -x map-ont | samtools view -bS - | samtools sort - | bedtools bamtobed -cigar > "+bedfile)
+    return bedfile
+    
 
 def run_canu(filtered_fastq, statistics, outdir):
     assemblydir = os.path.join(outdir, "assembly")
@@ -221,27 +227,100 @@ def get_length_for_reads(fastqfile, fasta=False):
         for line in fh:
             linecount += 1
             if linecount == 1:
-                match_line = re.match("^@(\S+)\runid=.*", line)
+                match_line = re.match("^@(\S+)\srunid=.*", line)
                 if match_line is not None: 
                     read_match = match_line.groups()
                     read = read_match[0]
-                elif linecount == 2:
+            elif linecount == 2:
                     reads[read] = {"length": len(line)}
-                elif linecount == 4:
+            elif linecount == 4:
                     linecount = 0
     return reads
 
 def get_mappings_from_blast_results(fastqfile, contigfile, blastfile, fasta=False):
     #get length for reads:
     
-    
     reads = get_length_for_reads(fastqfile, fasta=fasta)
 
-    mappings = get_contigs_with_length(contigfile)
-    mappings = get_non_overlapping_hits_from_blast_result(contigs, blastfile)
+    mappings = get_non_overlapping_hits_from_blast_result(reads, blastfile)        
     
-    return (reads, mappings)
-                    
+    contigs = get_contigs_with_length(contigfile)
+    mappings_by_contig = {}
+    for c in contigs:
+        mappings_by_contig[c] = {}
+    for read in mappings:
+        hits = mappings[read]["hits"]
+        length = mappings[read]["length"]
+        for hit in hits:
+            contig_hit = hit["saccver"]
+            if not read in mappings_by_contig[contig_hit].keys():
+                mappings_by_contig[contig_hit][read] = {}
+                mappings_by_contig[contig_hit][read]["hits"] = []
+            mappings_by_contig[contig_hit][read]["length"] = length
+            mappings_by_contig[contig_hit][read]["hits"].append(hit)
+                
+    return mappings_by_contig
+
+def get_mappings_from_bedfile(fastqfile, contigfile, mapping_bed_file, fasta=False):
+    reads = get_length_for_reads(fastqfile, fasta=fasta)
+    contigs = get_contigs_with_length(contigfile)
+    mappings_by_contig = {}
+    
+    for c in contigs:
+        mappings_by_contig[c] = {}
+#    
+#    print(fastqfile)
+#    print(reads)
+#    print(contigs)
+#    
+    with open (mapping_bed_file, "r") as fh:
+        for line in fh:
+            (tig, start, stop, read, qual, strand, cigar) = line.split()
+            if int(qual) < MAPPING_QUAL_CUTOFF:
+                continue
+            read_length = reads[read]["length"]
+            max_mapping_length = abs(int(stop) - int(start))
+            if not read in mappings_by_contig[tig].keys():
+                mappings_by_contig[tig][read] = {}
+                mappings_by_contig[tig][read]["hits"] = []
+                mappings_by_contig[tig][read]["length"] = read_length
+                mappings_by_contig[tig][read]["max_mapping_length"] = max_mapping_length
+            if(strand == "-"):
+                tmp = start
+                start = stop
+                stop = tmp
+                
+            qstart = 0
+            qend = read_length
+
+            #check cigar string:
+            #print(cigar)
+            match_cigar_front = re.match("^(\d+[HS])", cigar)
+            if match_cigar_front is not None:
+                groups = match_cigar_front.groups()
+                #print("CIGAR GROUPS FRONT: "+str(groups))
+                if(groups[0] != ""):
+                    qstart = int(groups[0][:-1])
+            match_cigar_end = re.search("(\d+[HS])$", cigar)
+            if match_cigar_end is not None:
+                groups = match_cigar_end.groups()
+                #print("CIGAR GROUPS END: "+str(groups))
+                if(groups[0] != ""):
+                    qend = int(read_length) - int(groups[0][:-1])
+
+            hit = {"qaccver": read,
+                   "saccver": tig,
+                   "sstart": start,
+                   "send": stop,
+                   "qstart": qstart,
+                   "qend": qend
+                    }
+            mappings_by_contig[tig][read]["hits"].append(hit)
+            if max_mapping_length >  mappings_by_contig[tig][read]["max_mapping_length"]:
+                mappings_by_contig[tig][read]["max_mapping_length"] = max_mapping_length
+    print( mappings_by_contig)
+    return mappings_by_contig
+    
 
 def get_contigs_with_length(contigfile):
     contigs = {}
@@ -265,12 +344,12 @@ def get_contigs_with_length(contigfile):
     return contigs
 
 def get_non_overlapping_hits_from_blast_result(contigs, blastfile):    
-    sortedblastfile = blastfile+".sorted"
-    os.system("sort -nr -k 12 -k 3 "+blastfile+" > "+sortedblastfile)
+    #sortedblastfile = blastfile+".sorted"
+    #os.system("sort -nr -k 12 -k 3 "+blastfile+" > "+sortedblastfile)
     for contig in contigs:
         hits = []
         #borders = []
-        with open(sortedblastfile, 'r') as fh:
+        with open(blastfile, 'r') as fh:
             for line in fh:
                 if(re.match("^"+contig, line)):
                     hit = {}
@@ -296,7 +375,6 @@ def get_non_overlapping_hits_from_blast_result(contigs, blastfile):
 def get_annotation_from_blast_result(contigfile, blastfile, allfasta, references_file):
     contigs = get_contigs_with_length(contigfile)
     #sort blastfile by length/identity:
-
     contigs = get_non_overlapping_hits_from_blast_result(contigs, blastfile) 
     
     #write fasta with references:
@@ -417,18 +495,18 @@ def create_contigfile_from_assembly(assemblyfile, blastfile, outdir, lineid, ext
     
      
 
-def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, assembly_input=False):
+def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, assembly=None):
     if not (os.path.isdir(outdir)):
         os.mkdir(outdir)
     statistics= {}
     #get statistics for all reads
-    if not assembly_input:
+    if assembly is None:
         fastq_stats = get_fastq_stats(fastqfile)
         statistics["fastq_stats"] = fastq_stats
     #run BLAST
     blastfile = os.path.join(outdir, lineid+".bls");
     run_blast(fastqfile, blastfile, tdnafile)
-    if not assembly_input:
+    if assembly is None:
         idfile = get_id_file(blastfile)
         #filter FASTQ
         filtered_fastq = os.path.join(outdir, lineid+".fastq")
@@ -451,7 +529,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
     #else - input is assembly
     else:
         #create contigfile from assembly, +- 50kb from insertion
-        contigfile = create_contigfile_from_assembly(fastqfile, blastfile, outdir, lineid)
+        contigfile = create_contigfile_from_assembly(assembly, blastfile, outdir, lineid)
    
     #blast contigs vs all possible targets:
     blast_vs_allfasta = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
@@ -460,18 +538,31 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
     #get annotated contigs and a file containing all matched sequences from possible targets
     references_file = os.path.join(outdir, lineid+"_with_flanking.fasta")
     contigs = get_annotation_from_blast_result(contigfile, blast_vs_allfasta, allfasta, references_file)
+    statistics["contigs_and_blast_results"] = contigs
     
     #map reads back to assembly:
-    blast_reads_vs_contigs = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
-    if not (assembly_input):    
-        run_blast(filtered_fastq, blast_reads_vs_contigs, contigfile)
-        (reads, mappings) = get_mappings_from_blast_results(filtered_fastq, blast_reads_vs_contigs, contigfile)
-    elif fastqfile is not None:
-        run_blast(fastqfile, blast_reads_vs_contigs, contigfile)
-        (reads, mappings) = get_mappings_from_blast_results(fastqfile, blast_reads_vs_contigs, contigfile)
-    
-    
-    statistics["contigs_and_blast_results"] = contigs
+    if assembly is not None:
+        mapping_bed_file = os.path.join(outdir, lineid+"_reads_vs_assembly.bed")
+        run_minimap2(fastqfile, contigfile, mapping_bed_file)
+        mappings_by_contig = get_mappings_from_bedfile(fastqfile, contigfile, mapping_bed_file)
+    else:
+        mapping_bed_file = os.path.join(outdir, lineid+"_reads_vs_assembly.bed")
+#        run_minimap2(fastqfile, contigfile, mapping_bed_file)
+#        mappings_by_contig = get_mappings_from_bedfile(fastqfile, contigfile, mapping_bed_file)
+        run_minimap2(filtered_fastq, contigfile, mapping_bed_file)
+        mappings_by_contig = get_mappings_from_bedfile(filtered_fastq, contigfile, mapping_bed_file)
+
+
+#dont use blast for mapping....
+#    blast_reads_vs_contigs = os.path.join(outdir, lineid+"_reads_vs_assembly.bls");
+#    mappings = None
+#    if not (assembly_input):    
+#        run_blast(filtered_fastq, blast_reads_vs_contigs, contigfile)
+#        mappings_by_contig = get_mappings_from_blast_results(filtered_fastq, contigfile, blast_reads_vs_contigs)
+#    elif fastqfile is not None:
+#        run_blast(fastqfile, blast_reads_vs_contigs, contigfile)
+#        mappings_by_contig = get_mappings_from_blast_results(fastqfile, contigfile, blast_reads_vs_contigs)    
+
     #print( statistics)
     
     for c in contigs: 
@@ -479,7 +570,10 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
             os.mkdir(webdir)    
         imagename = os.path.join(webdir, c+".png")
         if BE_VERBOSE: print ("Creating image "+imagename+" for "+lineid+".")
-        vis.draw_insertion(imagename, contigs[c])
+        if(mappings_by_contig is not None):
+            vis.draw_insertion(imagename, contigs[c], mappings_by_contig[c])
+        else:
+            vis.draw_insertion(imagename, contigs[c], None)
         if BE_VERBOSE: print ("Done creating image "+imagename+" for "+lineid+".")
         statistics["contigs_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
     html_summary(lineid, statistics, webdir)
