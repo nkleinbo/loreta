@@ -133,7 +133,7 @@ def draw_mappings(draw, mappings, contig_length):
     for read in mappings:
         mapping_length_dict[read] = mappings[read]["max_mapping_length"]
     sorted_reads = sorted(mapping_length_dict.items(), key = lambda x: x[1], reverse=True)
-    print(sorted_reads)
+    
     for read_tupel in sorted_reads:
         y += MAPPING_WIDTH
         read = read_tupel[0]

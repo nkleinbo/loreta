@@ -87,11 +87,11 @@ for line in input_dict:
     #_thread.start_new_thread(ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line]))
     if(genomepath is None):
         (contigfile, references_file) = ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
-        (contigfile2, references_file2) = ai.analyse_insertion(line, input_dict[line], contigfile, allfasta, out_dict[line]+"_with_flanking", web_dict[line]+"_with_flanking")
+        (contigfile2, references_file2) = ai.analyse_insertion(line, input_dict[line], references_file, allfasta, out_dict[line]+"_with_flanking", web_dict[line]+"_with_flanking")
         
     else:
         (contigfile, references_file) = ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line], assembly=input_dict[line])
-    break
+    #break
     #contigfile2 = ai.analyse_insertion(line, fastq_dict[line], contigfile, allfasta, out_dict[line]+"_2", web_dict[line]+"_2")
     
 

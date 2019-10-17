@@ -1,0 +1,68 @@
+html {
+  font: normal 15px verdana, arial, helvetica, sans-serif;
+  color: #000000;
+  background: #CCFFCC;
+}
+
+table {
+  border-collapse: collapse;
+  border: 1px solid #666666;
+  font: normal 13px verdana, arial, helvetica, sans-serif;
+  color: #000000;
+  background: #DDFFDD;
+/*   text-align:left; */
+}
+
+tr.odd {
+background: #f1f1f1;
+}
+
+a {
+color: #007656;
+text-decoration:none;
+font-weight:bold
+}
+
+a:hover {
+text-decoration:underline;
+}
+
+a:visited, a:active {
+color: #6B224A;
+/* color: #5C4A36; */
+
+}
+
+select {
+	border-collapse: collapse;
+	border: solid 1px #000000;
+	color: #000000;
+	background: #FFFFFF;
+	font: normal 11px verdana, arial, helvetica, sans-serif;
+	text-align:left;
+}
+
+input {
+	border-collapse: collapse;
+	border: solid 1px #446644;
+/* 	border-right: solid 3px #446644;	 */
+	color: #000000;
+	background: #FFFFFF;
+	font: normal 11px verdana, arial, helvetica, sans-serif;
+	text-align:left;
+}
+textarea {
+	border-collapse: collapse;
+	border: solid 1px #000000;
+	color: #000000;
+	background: #FFFFFF;
+	font: normal 11px verdana, arial, helvetica, sans-serif;
+	text-align:left;
+}
+tbody th {
+padding:5px;
+ background: #CCEECC;
+}
+tbody td {
+padding:5px;
+}

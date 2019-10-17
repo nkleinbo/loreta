@@ -28,7 +28,9 @@ ALLOWED_IDENTITY = 90
 #use corrected reads as input:
 CORRECTED_READS = False
 #bed quality value cutoff for mapping
-MAPPING_QUAL_CUTOFF = 50
+MAPPING_QUAL_CUTOFF = 60
+#mapping length cutoff
+MAPPING_LENGTH_CUTOFF = 200
 
 
 def get_id_file(blastfile):
@@ -59,7 +61,8 @@ def run_blast(fastqfile, blastfile, dbfile):
     return blastfile
 
 def run_minimap2(fastqfile, contigfile, bedfile):
-    os.system("minimap2 "+contigfile+" "+fastqfile+" -a -t "+str(NO_CPUS)+" -x map-ont | samtools view -bS - | samtools sort - | bedtools bamtobed -cigar > "+bedfile)
+    if not (os.path.isfile(bedfile)):
+        os.system("minimap2 "+contigfile+" "+fastqfile+" -a -t "+str(NO_CPUS)+" -x map-ont | samtools view -bS - | samtools sort - | bedtools bamtobed -cigar > "+bedfile)
     return bedfile
     
 
@@ -280,6 +283,8 @@ def get_mappings_from_bedfile(fastqfile, contigfile, mapping_bed_file, fasta=Fal
                 continue
             read_length = reads[read]["length"]
             max_mapping_length = abs(int(stop) - int(start))
+            if(max_mapping_length < MAPPING_LENGTH_CUTOFF):
+                continue
             if not read in mappings_by_contig[tig].keys():
                 mappings_by_contig[tig][read] = {}
                 mappings_by_contig[tig][read]["hits"] = []
@@ -337,7 +342,7 @@ def get_contigs_with_length(contigfile):
                 match_line = re.match("^>(tig\d+):(\d+)-(\d+)", line)
                 if match_line is not None: 
                     tig_len = match_line.groups()
-                    tig = tig_len[0]
+                    tig = tig_len[0]+":"+tig_len[1]+"-"+tig_len[2]
                     length = int(tig_len[2])-int(tig_len[1])
                     length_dic = {"length": str(length)}
                     contigs[tig] = length_dic
@@ -505,8 +510,9 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
         statistics["fastq_stats"] = fastq_stats
     #run BLAST
     blastfile = os.path.join(outdir, lineid+".bls");
-    run_blast(fastqfile, blastfile, tdnafile)
+
     if assembly is None:
+        run_blast(fastqfile, blastfile, tdnafile)
         idfile = get_id_file(blastfile)
         #filter FASTQ
         filtered_fastq = os.path.join(outdir, lineid+".fastq")
@@ -529,6 +535,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
     #else - input is assembly
     else:
         #create contigfile from assembly, +- 50kb from insertion
+        run_blast(assembly, blastfile, tdnafile)
         contigfile = create_contigfile_from_assembly(assembly, blastfile, outdir, lineid)
    
     #blast contigs vs all possible targets:
@@ -564,11 +571,12 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, as
 #        mappings_by_contig = get_mappings_from_blast_results(fastqfile, contigfile, blast_reads_vs_contigs)    
 
     #print( statistics)
-    
+    print (contigfile)
     for c in contigs: 
         if not (os.path.isdir(webdir)):
             os.mkdir(webdir)    
-        imagename = os.path.join(webdir, c+".png")
+        c_name = c.replace(":", "_")
+        imagename = os.path.join(webdir, c_name+".png")
         if BE_VERBOSE: print ("Creating image "+imagename+" for "+lineid+".")
         if(mappings_by_contig is not None):
             vis.draw_insertion(imagename, contigs[c], mappings_by_contig[c])
