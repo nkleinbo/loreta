@@ -611,7 +611,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
                 assembly_statistics.append(assembly_statistics_line)
         fh.close()
         statistics["assembly_statistics"] = assembly_statistics
-
+    (references_file, references_file_no_tdna) = (None, None)
     if(os.path.isfile(contigfile)):
         #blast contigs vs all possible targets:
         blast_vs_allfasta = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
