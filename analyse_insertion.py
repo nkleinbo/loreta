@@ -47,7 +47,7 @@ def get_id_file(blastfile, filter_reads = None):
     return idfile 
 
 #runs BLAST and returns an ID file with all hits
-def run_blast(fastqfile, blastfile, dbfile):
+def run_blast(fastqfile, blastfile, dbfile, nofilters=False):
     #check if makeblastdb has been run
     if not (os.path.isfile(dbfile+".nin")):
         os.system("makeblastdb -dbtype nucl -in "+dbfile)
@@ -56,9 +56,13 @@ def run_blast(fastqfile, blastfile, dbfile):
         if BE_VERBOSE: print ("BLASTING "+fastqfile+" ...")
         #blastcommand = "gzip -dc "+fastqfile+" | seqtk seq -A | blastn -db "+tdnafile+" -out "+blastfile+" -outfmt 6 -num_threads "+str(NO_CPUS)+" "+BLAST_PARAMS
         (prefix, extension) = os.path.splitext(fastqfile)
-        blastcommand = "seqtk seq -A "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+BLAST_PARAMS+" > "+blastfile
+        if(nofilters):
+            blastparams = ""
+        else:
+            blastparams = BLAST_PARAMS
+        blastcommand = "seqtk seq -A "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+blastparams+" > "+blastfile
         if(extension == ".fasta"):
-            blastcommand = "cat "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+BLAST_PARAMS+" > "+blastfile
+            blastcommand = "cat "+fastqfile+" |  parallel -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+blastparams+" > "+blastfile
         #print(blastcommand)
         os.system(blastcommand)
         if BE_VERBOSE:  "Done BLASTING "+fastqfile+"."
@@ -76,7 +80,7 @@ def run_canu(filtered_fastq, statistics, outdir):
     assemblydir = os.path.join(outdir, "assembly")
     projectname = "assembly"
     contigfile = os.path.join(assemblydir, projectname+".contigs.fasta")
-    unassembledfile = os.path.join(assemblydir, projectname+".contigs.fasta")
+    unassembledfile = os.path.join(assemblydir, projectname+".unassembled.fasta")
     longest_read = statistics["filtered_fastq_stats"]["longest_read"]
     coverage_for_longest_read = statistics["filtered_fastq_stats"]["coverage_for_longest_read"]
     genome_size = 0
@@ -94,7 +98,7 @@ def run_canu(filtered_fastq, statistics, outdir):
         if BE_VERBOSE: print ("Done asssembly for "+filtered_fastq+".")
     else:
         if BE_VERBOSE: print ("Skipping asssembly for "+filtered_fastq+"...")
-    return contigfile
+    return (contigfile, unassembledfile)
 #os.system(canu_command)
 #print "Done."
 
@@ -191,6 +195,27 @@ def html_summary(lineid, statistics, webdir):
             fh.write("</table>")
         elif(head == "contigs_and_blast_results"):
             for contig in stats:
+                if (len(stats[contig]["hits"]) == 0):
+                    continue
+                fh.write("<h3>"+contig+", Length: "+stats[contig]['length']+"</h3>")
+                fh.write("<table>")
+                first_hit = stats[contig]["hits"][0]
+                fh.write("<tr>")
+                for desc in first_hit:
+                    fh.write("<th>"+str(desc)+"</th>")
+                fh.write("</tr>")
+                for hit in stats[contig]["hits"]:
+                    fh.write("<tr>")
+                    for d in hit:
+                        fh.write("<td>"+str(hit[d])+"</td>")
+                    fh.write("</tr>")
+                fh.write("</table>")
+                fh.write("<h4>Visualisation for "+contig+"</h4>")
+                fh.write("<img src='"+stats[contig]["image"]+"'/>")
+        elif(head == "unassembled_and_blast_results"):
+            for contig in stats:
+                if (len(stats[contig]["hits"]) == 0):
+                    continue
                 fh.write("<h3>"+contig+", Length: "+stats[contig]['length']+"</h3>")
                 fh.write("<table>")
                 first_hit = stats[contig]["hits"][0]
@@ -536,7 +561,8 @@ def create_contigfile_from_assembly(assemblyfile, blastfile, outdir, lineid, ext
     os.system("bedtools getfasta -fi "+assemblyfile+" -bed "+bedfile+" -fo "+contigfile)
     return contigfile        
     
-    
+   
+
      
 def analyse_insertion_assembly(lineid, fastqfile, tdnafile, allfasta, outdir, webdir, assembly):
     if not (os.path.isdir(outdir)):
@@ -583,6 +609,7 @@ def analyse_insertion_assembly(lineid, fastqfile, tdnafile, allfasta, outdir, we
     html_summary(lineid, statistics, webdir)
     return (contigfile, references_file, references_file_no_tdna)      
 
+
 def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, filter_reads = None):
     if not (os.path.isdir(outdir)):
         os.mkdir(outdir)
@@ -600,7 +627,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
     filtered_fastq_stats = get_fastq_stats(filtered_fastq)
     statistics["filtered_fastq_stats"] = filtered_fastq_stats
     #run canu:
-    contigfile = run_canu(filtered_fastq, statistics, outdir)
+    (contigfile, unassembledfile) = run_canu(filtered_fastq, statistics, outdir)
     #get assembly statistics:
     (p1,s1) = os.path.splitext(contigfile)
     assemblytigfile = p1+".layout.tigInfo"
@@ -613,6 +640,9 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
         fh.close()
         statistics["assembly_statistics"] = assembly_statistics
     (references_file, references_file_no_tdna) = (None, None)
+
+    
+    #annotate contigs
     if(os.path.isfile(contigfile)):
         #blast contigs vs all possible targets:
         blast_vs_allfasta = os.path.join(outdir, lineid+"_assembly_vs_allfasta.bls");
@@ -628,8 +658,6 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
         run_minimap2(filtered_fastq, contigfile, mapping_bed_file)
         mappings_by_contig = get_mappings_from_bedfile(filtered_fastq, contigfile, mapping_bed_file)
 
-        #print( statistics)
-        #print (contigfile)
         for c in contigs: 
             if not (os.path.isdir(webdir)):
                 os.mkdir(webdir)    
@@ -642,6 +670,37 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
                 vis.draw_insertion(imagename, contigs[c], None)
             if BE_VERBOSE: print ("Done creating image "+imagename+" for "+lineid+".")
             statistics["contigs_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
+    
+    #annotate unassembled
+    if(os.path.isfile(unassembledfile)):
+        #blast contigs vs all possible targets:
+        blast_vs_allfasta_ua = os.path.join(outdir, lineid+"_unassembled_vs_allfasta.bls");
+        run_blast(unassembledfile, blast_vs_allfasta_ua, allfasta)
+    
+        #get annotated contigs and a file containing all matched sequences from possible targets
+        references_base_ua = os.path.join(outdir, lineid+"unassembled_with_flanking")
+        (contigs_ua, references_file_ua, references_file_no_tdna_ua) = get_annotation_from_blast_result(unassembledfile, blast_vs_allfasta_ua, allfasta, references_base_ua)
+        statistics["unassembled_and_blast_results"] = contigs_ua
+        
+        #map reads back to assembly
+        mapping_bed_file_ua = os.path.join(outdir, lineid+"_reads_vs_unassembled.bed")
+        run_minimap2(filtered_fastq, unassembledfile, mapping_bed_file_ua)
+        mappings_by_contig_ua = get_mappings_from_bedfile(filtered_fastq, unassembledfile, mapping_bed_file_ua)
+
+        for c in contigs_ua: 
+            if not (os.path.isdir(webdir)):
+                os.mkdir(webdir)    
+            c_name = c.replace(":", "_")
+            imagename = os.path.join(webdir, c_name+".png")
+            if BE_VERBOSE: print ("Creating image "+imagename+" for "+lineid+".")
+            if(mappings_by_contig_ua is not None):
+                vis.draw_insertion(imagename, contigs_ua[c], mappings_by_contig_ua[c])
+            else:
+                vis.draw_insertion(imagename, contigs_ua[c], None)
+            if BE_VERBOSE: print ("Done creating image "+imagename+" for "+lineid+".")
+            statistics["unassembled_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
+
+
             
     
     html_summary(lineid, statistics, webdir)
