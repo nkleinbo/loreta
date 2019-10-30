@@ -76,6 +76,7 @@ def run_canu(filtered_fastq, statistics, outdir):
     assemblydir = os.path.join(outdir, "assembly")
     projectname = "assembly"
     contigfile = os.path.join(assemblydir, projectname+".contigs.fasta")
+    unassembledfile = os.path.join(assemblydir, projectname+".contigs.fasta")
     longest_read = statistics["filtered_fastq_stats"]["longest_read"]
     coverage_for_longest_read = statistics["filtered_fastq_stats"]["coverage_for_longest_read"]
     genome_size = 0
@@ -626,17 +627,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
         mapping_bed_file = os.path.join(outdir, lineid+"_reads_vs_assembly.bed")
         run_minimap2(filtered_fastq, contigfile, mapping_bed_file)
         mappings_by_contig = get_mappings_from_bedfile(filtered_fastq, contigfile, mapping_bed_file)
-    
-    #dont use blast for mapping....
-    #    blast_reads_vs_contigs = os.path.join(outdir, lineid+"_reads_vs_assembly.bls");
-    #    mappings = None
-    #    if not (assembly_input):    
-    #        run_blast(filtered_fastq, blast_reads_vs_contigs, contigfile)
-    #        mappings_by_contig = get_mappings_from_blast_results(filtered_fastq, contigfile, blast_reads_vs_contigs)
-    #    elif fastqfile is not None:
-    #        run_blast(fastqfile, blast_reads_vs_contigs, contigfile)
-    #        mappings_by_contig = get_mappings_from_blast_results(fastqfile, contigfile, blast_reads_vs_contigs)    
-    
+
         #print( statistics)
         #print (contigfile)
         for c in contigs: 
