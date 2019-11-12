@@ -74,7 +74,12 @@ def run_minimap2(fastqfile, contigfile, bedfile):
     if not (os.path.isfile(bedfile)):
         os.system("minimap2 "+contigfile+" "+fastqfile+" -a -t "+str(NO_CPUS)+" -x map-ont | samtools view -bS - | samtools sort - | bedtools bamtobed -cigar > "+bedfile)
     return bedfile
-    
+
+def create_fasta_from_fastq(fastqfile):
+    prefix, ext = os.path.splitext(fastqfile)
+    fastafile = prefix+".fasta"
+    os.system("seqtk seq -A "+fastqfile+" > "+fastafile)
+    return fastafile
 
 def run_canu(filtered_fastq, statistics, outdir):
     assemblydir = os.path.join(outdir, "assembly")
@@ -678,7 +683,7 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
         run_blast(unassembledfile, blast_vs_allfasta_ua, allfasta)
     
         #get annotated contigs and a file containing all matched sequences from possible targets
-        references_base_ua = os.path.join(outdir, lineid+"unassembled_with_flanking")
+        references_base_ua = os.path.join(outdir, lineid+"_unassembled_with_flanking")
         (contigs_ua, references_file_ua, references_file_no_tdna_ua) = get_annotation_from_blast_result(unassembledfile, blast_vs_allfasta_ua, allfasta, references_base_ua)
         statistics["unassembled_and_blast_results"] = contigs_ua
         
@@ -700,6 +705,27 @@ def analyse_insertion (lineid, fastqfile, tdnafile, allfasta, outdir, webdir, fi
             if BE_VERBOSE: print ("Done creating image "+imagename+" for "+lineid+".")
             statistics["unassembled_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
 
+    #annotate reads
+    fastafile = create_fasta_from_fastq(filtered_fastq)
+    if(os.path.isfile(fastafile)):
+        #blast contigs vs all possible targets:
+        blast_vs_allfasta_r = os.path.join(outdir, lineid+"_reads_vs_allfasta.bls");
+        run_blast(fastafile, blast_vs_allfasta_r, allfasta)
+    
+        #get annotated contigs and a file containing all matched sequences from possible targets
+        references_base_r = os.path.join(outdir, lineid+"_reads_with_flanking")
+        (contigs_r, references_file_r, references_file_no_tdna_r) = get_annotation_from_blast_result(fastafile, blast_vs_allfasta_r, allfasta, references_base_r)
+        statistics["reads_and_blast_results"] = contigs_r
+        
+        for c in contigs_r: 
+            if not (os.path.isdir(webdir)):
+                os.mkdir(webdir)    
+            c_name = c.replace(":", "_")
+            imagename = os.path.join(webdir, c_name+".png")
+            if BE_VERBOSE: print ("Creating image "+imagename+" for "+lineid+".")
+            vis.draw_insertion(imagename, contigs_r[c], None)
+            if BE_VERBOSE: print ("Done creating image "+imagename+" for "+lineid+".")
+            statistics["reads_and_blast_results"][c]["image"] = (os.path.split(imagename))[1]
 
             
     

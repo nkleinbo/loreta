@@ -29,7 +29,7 @@ for currentArgument, currentValue in arguments:
     if currentArgument in ("-h", "--help"):
         print ("displaying help")
     elif currentArgument in ("-f", "--fastqpath"):
-        print (("Location of fastq files: (%s)") % (currentValue))
+        print (("Location of fastq file: (%s)") % (currentValue))
         fastqpath = currentValue
     elif currentArgument in ("-t", "--tdna"):
         print (("Location of tdnafile: (%s)") % (currentValue))
@@ -84,8 +84,6 @@ for line in input_dict:
 
 #run analysis for each line:
 for line in input_dict:
-    if not (line == "708E02"):
-        continue;
     #_thread.start_new_thread(ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line]))
     if(genomepath is None):
         (contigfile, references_file, references_file_no_tdna, idfile) = ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
