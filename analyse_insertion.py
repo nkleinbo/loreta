@@ -16,7 +16,7 @@ BE_VERBOSE = True;
 #no of CPUs to use at max:
 NO_CPUS = 64;
 #BLAST parameters:
-BLAST_PARAMS = " -perc_identity 85 -evalue 1e-150 -min_raw_gapped_score 1000"
+BLAST_PARAMS = " -perc_identity 85 -evalue 1e-50"
 #expected genome size:
 GENOME_SIZE=145000000
 #write fastq files WITHOUT T-DNA:
@@ -33,6 +33,17 @@ MAPPING_QUAL_CUTOFF = 60
 MAPPING_LENGTH_CUTOFF = 200
 #path to stylesheet:
 STYLESHEET = "style/style.css"
+#Rerun BLASTS:
+RERUN_BLAST = True
+#Rerun Assemblies:
+RERUN_ASSEMBLY = True
+#Rerun Assemblies:
+RERUN_MAPPING = True
+#Recreate filtered fastqs
+RECREATE_FASTQ = True
+#RERUN ALL
+RERUN_ALL = True
+
 
 def get_id_file(blastfile, filter_reads = None):
     if BE_VERBOSE: print ("Creating idfile for "+blastfile+"...")
@@ -52,7 +63,7 @@ def run_blast(fastqfile, blastfile, dbfile, nofilters=False):
     if not (os.path.isfile(dbfile+".nin")):
         os.system("makeblastdb -dbtype nucl -in "+dbfile)
     #run blast if results do not already exist
-    if not (os.path.isfile(blastfile)):
+    if (not os.path.isfile(blastfile) or RERUN_BLAST or RERUN_ALL):
         if BE_VERBOSE: print ("BLASTING "+fastqfile+" ...")
         #blastcommand = "gzip -dc "+fastqfile+" | seqtk seq -A | blastn -db "+tdnafile+" -out "+blastfile+" -outfmt 6 -num_threads "+str(NO_CPUS)+" "+BLAST_PARAMS
         (prefix, extension) = os.path.splitext(fastqfile)
@@ -71,7 +82,7 @@ def run_blast(fastqfile, blastfile, dbfile, nofilters=False):
     return blastfile
 
 def run_minimap2(fastqfile, contigfile, bedfile):
-    if not (os.path.isfile(bedfile)):
+    if (not os.path.isfile(bedfile) or RERUN_MAPPING or RERUN_ALL):
         os.system("minimap2 "+contigfile+" "+fastqfile+" -a -t "+str(NO_CPUS)+" -x map-ont | samtools view -bS - | samtools sort - | bedtools bamtobed -cigar > "+bedfile)
     return bedfile
 
@@ -93,12 +104,15 @@ def run_canu(filtered_fastq, statistics, outdir):
         genome_size=longest_read
     else:
         genome_size=int((longest_read * coverage_for_longest_read) / 11)
-    if not (os.path.isfile(contigfile)):
+    if(os.path.isfile(contigfile) and (RERUN_ASSEMBLY or RERUN_ALL)):
+        os.system("rm -rf "+assemblydir)
+    if (not os.path.isfile(contigfile)):
         if BE_VERBOSE: print ("Starting asssembly for "+filtered_fastq+"...")
         if CORRECTED_READS:
             canu_command="canu -assemble -d "+assemblydir+" -p "+projectname+" -nanopore-corrected "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
         else:
-            canu_command="canu -d "+assemblydir+" -p "+projectname+" -nanopore-raw "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
+            #canu_command="canu -d "+assemblydir+" -p "+projectname+" -nanopore-raw "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize="+str(genome_size)+"' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17'"
+            canu_command="canu -d "+assemblydir+" -p "+projectname+" -nanopore-raw "+filtered_fastq+ " 'stopOnLowCoverage=5' 'genomeSize=10k' 'useGrid=0' 'corMhapFilterThreshold=0.0000000002' 'ovlMerThreshold=500' 'corMhapOptions=--threshold 0.80 --num-hashes 512 --num-min-matches 3 --ordered-sketch-size 1000 --ordered-kmer-size 14 --min-olap-length 2000 --repeat-idf-scale 50' 'correctedErrorRate=0.17' -fast 'corOutCoverage=200'"
         os.system(canu_command)
         if BE_VERBOSE: print ("Done asssembly for "+filtered_fastq+".")
     else:
@@ -109,6 +123,8 @@ def run_canu(filtered_fastq, statistics, outdir):
 
 
 def filter_sequences(idfile, fastqfile, filtered_fastq, write_remaining=False):
+    if (os.path.isfile(filtered_fastq) and (RECREATE_FASTQ or RERUN_ALL)):
+        os.system("rm  "+filtered_fastq)
     if not (os.path.isfile(filtered_fastq)):
         if BE_VERBOSE: print ("Grepping sequences from "+fastqfile+"...")
         os.system("grep -A 3 --no-group-separator -f "+idfile+" "+fastqfile+" > "+filtered_fastq)
@@ -119,6 +135,8 @@ def filter_sequences(idfile, fastqfile, filtered_fastq, write_remaining=False):
         prefix, ext = os.path.splitext(fastqfile)
         remaining_fastqfile = prefix+".notdna.fastq"
         remaining_idfile = prefix+".notdna.ids"
+        if (os.path.isfile(remaining_fastqfile) and (RECREATE_FASTQ or RERUN_ALL)):
+            os.system("rm  "+remaining_fastqfile)
         if not (os.path.isfile(remaining_fastqfile)):
             if BE_VERBOSE: print ("Grepping non-T-DNA sequences from "+fastqfile+"...")
             os.system("grep '^@.*runid' "+fastqfile+" | grep -v -f "+idfile+" > "+remaining_idfile)
@@ -218,6 +236,25 @@ def html_summary(lineid, statistics, webdir):
                 fh.write("<h4>Visualisation for "+contig+"</h4>")
                 fh.write("<img src='"+stats[contig]["image"]+"'/>")
         elif(head == "unassembled_and_blast_results"):
+            for contig in stats:
+                if (len(stats[contig]["hits"]) == 0):
+                    continue
+                fh.write("<h3>"+contig+", Length: "+stats[contig]['length']+"</h3>")
+                fh.write("<table>")
+                first_hit = stats[contig]["hits"][0]
+                fh.write("<tr>")
+                for desc in first_hit:
+                    fh.write("<th>"+str(desc)+"</th>")
+                fh.write("</tr>")
+                for hit in stats[contig]["hits"]:
+                    fh.write("<tr>")
+                    for d in hit:
+                        fh.write("<td>"+str(hit[d])+"</td>")
+                    fh.write("</tr>")
+                fh.write("</table>")
+                fh.write("<h4>Visualisation for "+contig+"</h4>")
+                fh.write("<img src='"+stats[contig]["image"]+"'/>")
+        elif(head == "reads_and_blast_results"):
             for contig in stats:
                 if (len(stats[contig]["hits"]) == 0):
                     continue
@@ -381,32 +418,42 @@ def get_mappings_from_bedfile(fastqfile, contigfile, mapping_bed_file, fasta=Fal
 
 def get_contigs_with_length(contigfile):
     contigs = {}
-    with open(contigfile, 'r') as fh:
+    lengthfile = contigfile+".length"
+    os.system("infoseq -noheading -only -name -length "+contigfile+" > "+lengthfile)
+    with open(lengthfile, 'r') as fh:
         for line in fh:
-            match_line = re.match("^>(tig\d+)\slen=(\d+).*", line)
-            if match_line is not None: 
-                tig_len = match_line.groups()
-                tig = tig_len[0]
-                length = tig_len[1]
-                length_dic = {"length": length}
-                contigs[tig] = length_dic
-            else:
-                match_line = re.match("^>(tig\d+):(\d+)-(\d+)", line)
-                if match_line is not None: 
-                    tig_len = match_line.groups()
-                    tig = tig_len[0]+":"+tig_len[1]+"-"+tig_len[2]
-                    length = int(tig_len[2])-int(tig_len[1])
-                    length_dic = {"length": str(length)}
-                    contigs[tig] = length_dic
+            contig, length = line.split()
+            length_dic = {"length": length}
+            contigs[contig] = length_dic
+    
+#    with open(contigfile, 'r') as fh:
+#        for line in fh:
+#            match_line = re.match("^>(tig\d+)\slen=(\d+).*", line)
+#            if match_line is not None: 
+#                tig_len = match_line.groups()
+#                tig = tig_len[0]
+#                length = tig_len[1]
+#                length_dic = {"length": length}
+#                contigs[tig] = length_dic
+#            else:
+#                match_line = re.match("^>(tig\d+):(\d+)-(\d+)", line)
+#                if match_line is not None: 
+#                    tig_len = match_line.groups()
+#                    tig = tig_len[0]+":"+tig_len[1]+"-"+tig_len[2]
+#                    length = int(tig_len[2])-int(tig_len[1])
+#                    length_dic = {"length": str(length)}
+#                    contigs[tig] = length_dic
+#            else:
+#                match_line = re.match("^>(.+)\srunidn=(+).*", line)
     return contigs
 
 def get_non_overlapping_hits_from_blast_result(contigs, blastfile):    
-    #sortedblastfile = blastfile+".sorted"
-    #os.system("sort -nr -k 12 -k 3 "+blastfile+" > "+sortedblastfile)
+    sortedblastfile = blastfile+".sorted"
+    os.system("sort -gr -k 12 "+blastfile+" > "+sortedblastfile)
     for contig in contigs:
         hits = []
         #borders = []
-        with open(blastfile, 'r') as fh:
+        with open(sortedblastfile, 'r') as fh:
             for line in fh:
                 if(re.match("^"+contig, line)):
                     hit = {}
@@ -433,7 +480,7 @@ def get_annotation_from_blast_result(contigfile, blastfile, allfasta, references
     contigs = get_contigs_with_length(contigfile)
     #sort blastfile by length/identity:
     contigs = get_non_overlapping_hits_from_blast_result(contigs, blastfile) 
-    
+
     #write fasta with references:
     bedfile = blastfile+".bed"
     references_file = references_base+".fasta"

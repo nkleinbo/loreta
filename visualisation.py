@@ -47,6 +47,7 @@ BLAST_FEATURE_MAPPING = {
 COLOURS = {
     "tdna": (200,0,0,1),
     "vector": (150,0,0,1),
+    "agrobac": (150,0,150,1),
     "adapter": (100,0,0,1),
     "plant": (0,200,0,1),
     "chloroplast": (0,155,0,1),
@@ -147,9 +148,10 @@ def draw_mappings(draw, mappings, contig_length):
         
 def draw_insertion(image_name, contig_dict, mappings):
     number_hits = 0
-    for read in mappings:
-        for hit in mappings[read]["hits"]:
-            number_hits += 1
+    if(mappings is not None):
+        for read in mappings:
+            for hit in mappings[read]["hits"]:
+                number_hits += 1
     height =  HEIGHT_WITHOUT_MAPPINGS+MAPPING_WIDTH*2*number_hits+50
         
     im = Image.new("RGB", (WIDTH, height), (255,255,255))
@@ -171,9 +173,9 @@ def draw_insertion(image_name, contig_dict, mappings):
                     }
         draw_feature(draw, font, hit_dict, contig_length, top)
         top = not top;
-        
-    draw_mappings(draw, mappings, contig_length)
 
+    if(mappings is not None):        
+        draw_mappings(draw, mappings, contig_length)
     
     im.save(image_name, "PNG")
 
