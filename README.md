@@ -80,47 +80,47 @@ There are several places where you can configure the behaviour of the script.
 ### Reference sequences ###
 If you are not using our T-DNA and reference file above, you will need to add the names of your references in the dictionary in visulisation.py::
 
-  BLAST_FEATURE_MAPPING = {
-    "Agrobacterium_circular": "agrobac",
-    "Agrobacterium_plasmid": "agrobac",
-    "Agrobacterium_linear": "agrobac",
-    "At_Chr1": "plant",
-    "At_Chr2": "plant",
-    "At_Chr3": "plant",
-    "At_Chr4": "plant",
-    "At_Chr5": "plant",
-    "Mitochondria": "mitochondria",
-    "Chloroplast": "chloroplast",
-    "T732": "adapter",
-    "LR32": "adapter",
-    "pAC106_tdna": "tdna",
-    "pAC106_vec": "vector",
-    "pAC161_tdna": "tdna",
-    "pAC161_vec": "vector",
-    "pGABI1_tdna": "tdna",
-    "pGABI1_vec": "vector",
-    "pADIS1_tdna": "tdna",
-    "pADIS1_vec": "vector",
-    "pROK2_vec": "vector",
-    "pRok2_tdna": "tdna",
-    "LB": "LB",
-    "RB": "RB"
-  }
+    BLAST_FEATURE_MAPPING = {
+        "Agrobacterium_circular": "agrobac",
+        "Agrobacterium_plasmid": "agrobac",
+        "Agrobacterium_linear": "agrobac",
+        "At_Chr1": "plant",
+        "At_Chr2": "plant",
+        "At_Chr3": "plant",
+        "At_Chr4": "plant",
+        "At_Chr5": "plant",
+        "Mitochondria": "mitochondria",
+        "Chloroplast": "chloroplast",
+        "T732": "adapter",
+        "LR32": "adapter",
+        "pAC106_tdna": "tdna",
+        "pAC106_vec": "vector",
+        "pAC161_tdna": "tdna",
+        "pAC161_vec": "vector",
+        "pGABI1_tdna": "tdna",
+        "pGABI1_vec": "vector",
+        "pADIS1_tdna": "tdna",
+        "pADIS1_vec": "vector",
+        "pROK2_vec": "vector",
+        "pRok2_tdna": "tdna",
+        "LB": "LB",
+        "RB": "RB"
+    }
 
 This is to ensure, that each annotated sequence gets the correct colour. Unknown features will get a gray colour. If You need to add all sequence names from your fasta annotation file. For example, if there is a sequence called "genome" which is your plant genome, you need to add "genome": "plant" in this dictionary. If you want to use different colours then the predefined, you can add it in this dictionary::
 
 
-  COLOURS = {
-    "tdna": (200,0,0,1),
-    "vector": (150,0,0,1),
-    "agrobac": (150,0,150,1),
-    "adapter": (100,0,0,1),
-    "plant": (0,200,0,1),
-    "chloroplast": (0,155,0,1),
-    "mitochondria": (0,0,255,1),
-    "LB": (255,0,0,1),
-    "RB": (255,0,0,1)
-  }
+    COLOURS = {
+        "tdna": (200,0,0,1),
+        "vector": (150,0,0,1),
+        "agrobac": (150,0,150,1),
+        "adapter": (100,0,0,1),
+        "plant": (0,200,0,1),
+        "chloroplast": (0,155,0,1),
+        "mitochondria": (0,0,255,1),
+        "LB": (255,0,0,1),
+        "RB": (255,0,0,1)
+    }
 
 ... and use its key in the BLAST_FEATURE_MAPPING array.
 
@@ -172,7 +172,7 @@ Then you can choose, whether you want to rerun intermediate steps of the script 
 
 You can change the generated images by changing the following constants in visualisation.py::
 
- WIDTH = 1600
+  WIDTH = 1600
   HEIGHT_WITHOUT_MAPPINGS = 100
   OFFSET = 50
   OFFSET_TOP = 50
