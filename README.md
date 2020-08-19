@@ -172,18 +172,18 @@ Then you can choose, whether you want to rerun intermediate steps of the script 
 
 You can change the generated images by changing the following constants in visualisation.py::
 
-  WIDTH = 1600
-  HEIGHT_WITHOUT_MAPPINGS = 100
-  OFFSET = 50
-  OFFSET_TOP = 50
-  OFFSET_MAPPINGS = HEIGHT_WITHOUT_MAPPINGS
-  MAPPING_WIDTH = 2
-  MAPPPING_COLOUR = (0,0,0)
-  MAPPPING_COLOUR_READ = (200,200,200)
-  LINEWIDTH = 5
-  FEATUREWIDTH = 16
-  FONTSIZE = 12
-  ARROW_OFFSET = 4
-  FONT = "fonts/TruenoRg.otf"
+    WIDTH = 1600
+    HEIGHT_WITHOUT_MAPPINGS = 100
+    OFFSET = 50
+    OFFSET_TOP = 50
+    OFFSET_MAPPINGS = HEIGHT_WITHOUT_MAPPINGS
+    MAPPING_WIDTH = 2
+    MAPPPING_COLOUR = (0,0,0)
+    MAPPPING_COLOUR_READ = (200,200,200)
+    LINEWIDTH = 5
+    FEATUREWIDTH = 16
+    FONTSIZE = 12
+    ARROW_OFFSET = 4
+    FONT = "fonts/TruenoRg.otf"
 
 However, better leave it as it is. :)
