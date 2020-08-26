@@ -84,8 +84,6 @@ for line in input_dict:
 
 #run analysis for each line:
 for line in input_dict:
-    if not (line == "082G09"):
-        continue;
     if(genomepath is None):
         (contigfile, references_file, references_file_no_tdna, idfile) = ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
 # rerun the analysis using flanking regions of the T-DNA as filter:
