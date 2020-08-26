@@ -64,13 +64,17 @@ Example call
 The call is as follows (fill in paths to your files/directories)
 
   python3 run_all.py 
-  -f <path to your data path, each line needs a seperate folder in here>
+  -f <path to your data path, each line needs a seperate fastq file in here>
   -o <output directory for result files like fasta files and assemblies>
   -t <location of the fasta file with your T-DNA sequences>
   -a <fasta file with all your references for annotation>
   -w <path to a directory, where the html files should be created>
   -g <path to an assembly, if you have a precomputed assembly of your sequencing run>
 
+The script will search for fastq files in the data dir (make sure, there is nothing else in it) and run an analysis for each fastq file. The prefix of the fastq file will serve as folder name for the directories in the result and web directory.
+If you provide assemblies with the -g option, make sure, that your assemblies are all stored as fasta files in the given directory and that the prefix of the fasta file matches your fastq files. For example: If you have a fasta assembly file "040A11.fasta" in the assembly directory, you need a corresponding "040A11.fastq" file in the fastq directory.
+
+Note that, if you run with -g option, no assemblies of filtered reads are computed.
 
 Configuration
 -------------
@@ -119,7 +123,8 @@ This is to ensure, that each annotated sequence gets the correct colour. Unknown
         "chloroplast": (0,155,0,1),
         "mitochondria": (0,0,255,1),
         "LB": (255,0,0,1),
-        "RB": (255,0,0,1)
+        "RB": (255,0,0,1),
+        "other: (155,155,155,1)
     }
 
 ... and use its key in the BLAST_FEATURE_MAPPING array.

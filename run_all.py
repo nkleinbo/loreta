@@ -80,24 +80,19 @@ for line in input_dict:
     web_dict[line] = webdir
     
 #print (fastq_dict)
-#print(out_dict)
+#print(out_dict)s
 
 #run analysis for each line:
 for line in input_dict:
-#    if not (line == "433E06"):
-#        continue;
-    #_thread.start_new_thread(ai.analyse_insertion(line, fastq_dict[line], tdnafile, out_dict[line]))
+    if not (line == "082G09"):
+        continue;
     if(genomepath is None):
         (contigfile, references_file, references_file_no_tdna, idfile) = ai.analyse_insertion(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line])
-        if(os.path.isfile(contigfile)):
-            (contigfile2, references_file2, references_file_no_tdna2, idfile2) = ai.analyse_insertion(line, input_dict[line], contigfile, allfasta, out_dict[line]+"_with_flanking", web_dict[line]+"_with_flanking")
-            (contigfile3, references_file3, references_file_no_tdna3, idfile3) = ai.analyse_insertion(line, input_dict[line], references_file, allfasta, out_dict[line]+"_with_flanking_from_ref", web_dict[line]+"_with_flanking_from_ref")
-            (contigfile4, references_file4, references_file_no_tdna4, idfile4) = ai.analyse_insertion(line, input_dict[line], references_file_no_tdna, allfasta, out_dict[line]+"_with_flanking_no_tdna", web_dict[line]+"_with_flanking_no_tdna", filter_reads=idfile)
+# rerun the analysis using flanking regions of the T-DNA as filter:
+#        if(os.path.isfile(contigfile)):
+#            (contigfile2, references_file2, references_file_no_tdna2, idfile2) = ai.analyse_insertion(line, input_dict[line], contigfile, allfasta, out_dict[line]+"_with_flanking", web_dict[line]+"_with_flanking")
+#            (contigfile3, references_file3, references_file_no_tdna3, idfile3) = ai.analyse_insertion(line, input_dict[line], references_file, allfasta, out_dict[line]+"_with_flanking_from_ref", web_dict[line]+"_with_flanking_from_ref")
+#            (contigfile4, references_file4, references_file_no_tdna4, idfile4) = ai.analyse_insertion(line, input_dict[line], references_file_no_tdna, allfasta, out_dict[line]+"_with_flanking_no_tdna", web_dict[line]+"_with_flanking_no_tdna", filter_reads=idfile)
     else:
         (contigfile, references_file, references_file_no_tdna) = ai.analyse_insertion_assembly(line, fastq_dict[line], tdnafile, allfasta, out_dict[line], web_dict[line], assembly=input_dict[line])
-    #break
-    #contigfile2 = ai.analyse_insertion(line, fastq_dict[line], contigfile, allfasta, out_dict[line]+"_2", web_dict[line]+"_2")
-    
 
-#for line in fastq_dict:
-#    ai.summarise_results(out_dict[line])

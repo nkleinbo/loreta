@@ -25,6 +25,11 @@ BLAST_FEATURE_MAPPING = {
     "At_Chr3": "plant",
     "At_Chr4": "plant",
     "At_Chr5": "plant",
+    "Chr1_AthCol0": "plant",
+    "Chr2_AthCol0": "plant",
+    "Chr3_AthCol0": "plant",
+    "Chr4_AthCol0": "plant",
+    "Chr5_AthCol0": "plant",
     "Mitochondria": "mitochondria",
     "Chloroplast": "chloroplast",
     "T732": "adapter",
@@ -53,7 +58,8 @@ COLOURS = {
     "chloroplast": (0,155,0,1),
     "mitochondria": (0,0,255,1),
     "LB": (255,0,0,1),
-    "RB": (255,0,0,1)
+    "RB": (255,0,0,1),
+    "other": (155,155,155,1)
 }
 
 def draw_feature(draw, font, hit_dict, contig_length, top):
@@ -169,7 +175,7 @@ def draw_insertion(image_name, contig_dict, mappings):
                     "qend": int(hit["qend"]), 
                     "sstart": int(hit["sstart"]), 
                     "send": int(hit["send"]), 
-                    "f_type": BLAST_FEATURE_MAPPING[hit["saccver"]]
+                    "f_type": BLAST_FEATURE_MAPPING[hit["saccver"]] if (hit["saccver"] in BLAST_FEATURE_MAPPING) else "other"
                     }
         draw_feature(draw, font, hit_dict, contig_length, top)
         top = not top;
