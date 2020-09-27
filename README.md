@@ -52,6 +52,11 @@ Otherwise you will need to install the following::
   samtools:
   ...
   
+  gnu parallel
+  ...
+  
+  
+  
 And, finally, you will need reference files. If you are analysing GABI-Kat or SALK lines, you can use the reference files we provide here: www.www.www
 You need two files:
 - one file containing all T-DNA sequences of interest, this file is used for identification of reads containing T-DNA

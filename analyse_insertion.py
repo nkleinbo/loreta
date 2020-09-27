@@ -15,7 +15,7 @@ import visualisation as vis
 #wether to be verbose or not:
 BE_VERBOSE = True;
 #no of CPUs to use at max:
-NO_CPUS = 4;
+NO_CPUS = 64;
 #BLAST parameters for annotation:
 BLAST_PARAMS = " -word_size 7 -perc_identity 70 -evalue 1e-50"
 #BLAST parameters for finding reads:
