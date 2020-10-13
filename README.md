@@ -27,52 +27,14 @@ Otherwise you will need to install the following::
 
 * [Python](https://www.python.org/) 3.7 or later
 * [Pillow](https://pypi.org/project/Pillow/)
-
-* C++ compiler with C++14 support:
-    * [GCC](https://gcc.gnu.org/) 4.9.1 or later
-    * [Clang](http://clang.llvm.org/) 3.5 or later
-    * [ICC](https://software.intel.com/en-us/c-compilers) also works (though I don't know the minimum required version number)
-* [setuptools](https://packaging.python.org/installing/#install-pip-setuptools-and-wheel) (only required for installation of Unicycler)
-* For short-read or hybrid assembly:
-  * [SPAdes](http://bioinf.spbau.ru/spades) v3.6.2 – v3.13.0 (`spades.py`)
-* For long-read or hybrid assembly:
-  * [Racon](https://github.com/isovic/racon) (`racon`)
-* For polishing
-  * [Pilon](https://github.com/broadinstitute/pilon/wiki) (`pilon1.xx.jar`)
-  * [Java](https://www.java.com/download/) (`java`)
-  * [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/) (`bowtie2-build` and `bowtie2`)
-  * [Samtools](http://www.htslib.org/) v1.0 or later (`samtools`)
-* For rotating circular contigs:
-  * [BLAST+](https://www.ncbi.nlm.nih.gov/books/NBK279690/) (`makeblastdb` and `tblastn`)
-
-  python3 package for image drawing:
-  pip3 install Pillow
-  
-  BLAST:
-  sudo apt install ....
-  
-  Minimap2:
-  ...
-  
-  seqtk:
-  ...
-  
-  canu:
-  ...
-  
-  EMBOSS:
-  ...
-  
-  bedtools:
-  ...
-  
-  samtools:
-  ...
-  
-  gnu parallel
-  ...
-  
-  
+* [BLAST+](https://www.ncbi.nlm.nih.gov/books/NBK279690/)
+* [Samtools](http://www.htslib.org/) 
+* [Minimap2](https://github.com/lh3/minimap2)
+* [seqtk](https://github.com/lh3/seqtk)
+* [canu](https://github.com/marbl/canu)
+* [EMBOSS](http://emboss.sourceforge.net/)
+* [bedtools](https://github.com/arq5x/bedtools2)
+* [gnu parallel](https://www.gnu.org/software/parallel/)  
   
 And, finally, you will need reference files. If you are analysing GABI-Kat or SALK lines, you can use the reference files we provide here: www.www.www
 You need two files:
