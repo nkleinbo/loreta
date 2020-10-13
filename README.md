@@ -18,9 +18,11 @@ Other difficult cases are larger inversions, duplications or translocations, in 
 
 Requirements
 ------------
-In order to run the tool, you need to clone the repository::
+In order to run the tool, you need to clone the repository:
+```bash
+git clone https://github.com/nkleinbo/tdna_nanopore
+```
 
-  git clone https://github.com/nkleinbo/tdna_nanopore
   
 In addition, you need some additional tools like BLAST etc. If you are a researcher in Germany, you can apply for a SimpleVM project in the de.NBI cloud, there is a "Nanopore Workbench" image, which contains all necessary tools to run the script.
 Otherwise you will need to install the following::
