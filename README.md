@@ -51,7 +51,7 @@ Example call
 The call is as follows (fill in paths to your files/directories)
 ```bash
 python3 run_all.py 
-  -f <path to your data path, each line needs a seperate fastq file in here>
+  -f <path to your data directory, each line needs a seperate fastq file in this directory>
   -o <output directory for result files like fasta files and assemblies>
   -t <location of the fasta file with your T-DNA sequences>
   -a <fasta file with all your references for annotation>
