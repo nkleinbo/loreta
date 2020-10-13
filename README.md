@@ -25,9 +25,26 @@ In order to run the tool, you need to clone the repository::
 In addition, you need some additional tools like BLAST etc. If you are a researcher in Germany, you can apply for a SimpleVM project in the de.NBI cloud, there is a "Nanopore Workbench" image, which contains all necessary tools to run the script.
 Otherwise you will need to install the following::
 
-  python3:
-  sudo apt install python3
-  
+* [Python](https://www.python.org/) 3.7 or later
+* [Pillow](https://pypi.org/project/Pillow/)
+
+* C++ compiler with C++14 support:
+    * [GCC](https://gcc.gnu.org/) 4.9.1 or later
+    * [Clang](http://clang.llvm.org/) 3.5 or later
+    * [ICC](https://software.intel.com/en-us/c-compilers) also works (though I don't know the minimum required version number)
+* [setuptools](https://packaging.python.org/installing/#install-pip-setuptools-and-wheel) (only required for installation of Unicycler)
+* For short-read or hybrid assembly:
+  * [SPAdes](http://bioinf.spbau.ru/spades) v3.6.2 – v3.13.0 (`spades.py`)
+* For long-read or hybrid assembly:
+  * [Racon](https://github.com/isovic/racon) (`racon`)
+* For polishing
+  * [Pilon](https://github.com/broadinstitute/pilon/wiki) (`pilon1.xx.jar`)
+  * [Java](https://www.java.com/download/) (`java`)
+  * [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/) (`bowtie2-build` and `bowtie2`)
+  * [Samtools](http://www.htslib.org/) v1.0 or later (`samtools`)
+* For rotating circular contigs:
+  * [BLAST+](https://www.ncbi.nlm.nih.gov/books/NBK279690/) (`makeblastdb` and `tblastn`)
+
   python3 package for image drawing:
   pip3 install Pillow
   
