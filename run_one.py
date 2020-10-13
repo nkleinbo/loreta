@@ -17,6 +17,8 @@ argumentList = fullCmdArguments[1:]
 unixOptions = "hf:t:o:w:a:g:"
 gnuOptions = ["help", "fastqpath=", "tdnafile=", "outputpath=", "webpath=", "allfasta="]
 
+#this file is not working yet!
+
 try:
     arguments, values = getopt.getopt(argumentList, unixOptions, gnuOptions)
 except getopt.error as err:

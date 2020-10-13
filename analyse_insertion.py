@@ -9,44 +9,24 @@ Created on Wed Sep 11 14:45:04 2019
 import os
 import re
 import visualisation as vis
+from Config import (BE_VERBOSE, 
+                    NO_CPUS, 
+                    BLAST_PARAMS, 
+                    GENOME_SIZE, 
+                    WRITE_FASTQ_WITHOUT_TDNA, 
+                    ALLOWED_OVERLAP, 
+                    ALLOWED_IDENTITY, 
+                    CORRECTED_READS, 
+                    MAPPING_QUAL_CUTOFF, 
+                    MAPPING_LENGTH_CUTOFF, 
+                    STYLESHEET, 
+                    RERUN_BLAST, 
+                    RERUN_ASSEMBLY, 
+                    RERUN_MAPPING, 
+                    RECREATE_FASTQ, 
+                    RERUN_ALL)
 
-#some configurations:
-
-#wether to be verbose or not:
-BE_VERBOSE = True;
-#no of CPUs to use at max:
-NO_CPUS = 64;
-#BLAST parameters for annotation:
-BLAST_PARAMS = " -word_size 7 -perc_identity 70 -evalue 1e-50"
-#BLAST parameters for finding reads:
-#BLAST_PARAMS = " -word_size 7 -perc_identity 70 -evalue 1e-50"
-#expected genome size:
-GENOME_SIZE=145000000
-#write fastq files WITHOUT T-DNA:
-WRITE_FASTQ_WITHOUT_TDNA = False;
-#allowed overlap of BLAST results for contig annotation:
-ALLOWED_OVERLAP = 20
-#allowed identity of BLAST results for contig annotation:
-ALLOWED_IDENTITY = 80
-#use corrected reads as input:
-CORRECTED_READS = False
-#bed quality value cutoff for mapping
-MAPPING_QUAL_CUTOFF = 60
-#mapping length cutoff
-MAPPING_LENGTH_CUTOFF = 200
-#path to stylesheet:
-STYLESHEET = "style/style.css"
-#Rerun BLASTS:
-RERUN_BLAST = False
-#Rerun Assemblies:
-RERUN_ASSEMBLY = False
-#Rerun Assemblies:
-RERUN_MAPPING = False
-#Recreate filtered fastqs
-RECREATE_FASTQ = False
-#RERUN ALL
-RERUN_ALL = False
-
+#some configurations:\
 
 def get_id_file(blastfile, filter_reads = None):
     if BE_VERBOSE: print ("Creating idfile for "+blastfile+"...")
@@ -290,7 +270,7 @@ def hit_overlaps_other_hit(hit, hits):
     e = int(hit["qend"])
     for h in hits:
         overlap = 0
-        contained = False
+        #contained = False
         s2 = int(h["qstart"])
         e2 = int(h["qend"])
         if s < s2:
@@ -298,7 +278,7 @@ def hit_overlaps_other_hit(hit, hits):
         else:
             if e < e2:
                 overlap = e - s
-                contained = True
+                #contained = True
             else:
                 overlap = e2 -s
         if overlap > ALLOWED_OVERLAP:
