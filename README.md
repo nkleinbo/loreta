@@ -38,18 +38,19 @@ Otherwise you will need to install the following::
 * [bedtools](https://github.com/arq5x/bedtools2)
 * [gnu parallel](https://www.gnu.org/software/parallel/)  
   
-And, finally, you will need reference files. If you are analysing GABI-Kat or SALK lines, you can use the reference files we provide here: www.www.www
+And, finally, you will need reference files. If you are analysing GABI-Kat or SALK lines, you can use the reference files provided in the folder 'references' (gunzip them).
 You need two files:
 - one file containing all T-DNA sequences of interest, this file is used for identification of reads containing T-DNA
 - one file containing all sequences you expect, in the files mentioned above: T-DNA, the vector backbone, A. thaliana. Mitochondria, Chloroplast and A. tumefaciens. This file is used to annotate the generated contigs and reads.
-  
+
+ 
   
 Example call
 ------------
 
 The call is as follows (fill in paths to your files/directories)
-
-  python3 run_all.py 
+```bash
+python3 run_all.py 
   -f <path to your data path, each line needs a seperate fastq file in here>
   -o <output directory for result files like fasta files and assemblies>
   -t <location of the fasta file with your T-DNA sequences>
@@ -57,6 +58,7 @@ The call is as follows (fill in paths to your files/directories)
   -w <path to a directory, where the html files should be created>
   -g <path to an assembly, if you have a precomputed assembly of your sequencing run>
 
+```
 The script will search for fastq files in the data dir (make sure, there is nothing else in it) and run an analysis for each fastq file. The prefix of the fastq file will serve as folder name for the directories in the result and web directory.
 If you provide assemblies with the -g option, make sure, that your assemblies are all stored as fasta files in the given directory and that the prefix of the fasta file matches your fastq files. For example: If you have a fasta assembly file "040A11.fasta" in the assembly directory, you need a corresponding "040A11.fastq" file in the fastq directory.
 
