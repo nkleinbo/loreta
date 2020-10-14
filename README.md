@@ -3,14 +3,14 @@
 Nanopore T-DNA Analysis Tool
 ============================
 
-This tool extracts reads containing T-DNA out of a full genome sequencing run of Oxford Nanopore data. 
+This tool extracts reads containing T-DNA out of a full genome sequencing run of Oxford Nanopore Technologies (ONT) data. 
 It performs basically the following steps:
 - BLAST all reads vs. T-DNA sequences of interest
 - run an assembly using canu with these reads
 - annotate the resulting contigs using the reference sequence of the host species
-- annotate all reads as well
-- if available, you can search for insertions in a finished complete genome assembly (see Example call)
-- create a summary html page with png images showing the annotation
+- annotate features in all reads
+- if available, you can search for insertions in a complete genome assembly (see 'Example call')
+- create a summary HTML page with PNG images showing the annotation
 
 These results can then be inspected. For simple T-DNA insertions, the insertions are usually fully explained by the assembly and/or individual reads.
 Difficult cases might be harder to interpret, for example inverted T-DNA repeats. One repeat is usually of good quality (the downstream one), the other of bad quality. In order to resolve these cases, reads running in both directions need to be identified. 
@@ -24,7 +24,9 @@ git clone https://github.com/nkleinbo/tdna_nanopore
 ```
 
   
-In addition, you need some additional tools like BLAST etc. If you are a researcher in Germany, you can apply for a SimpleVM project in the de.NBI cloud, there is a "Nanopore Workbench" image, which contains all necessary tools to run the script.
+Some additional tools are required. If you are a researcher in Germany, you can apply for a SimpleVM project in the de.NBI cloud, there is a "Nanopore Workbench" image, which contains all necessary tools to run the script.
+
+
 Otherwise you will need to install the following::
 
 * [Python](https://www.python.org/) 3.7 or later
@@ -38,10 +40,10 @@ Otherwise you will need to install the following::
 * [bedtools](https://github.com/arq5x/bedtools2)
 * [gnu parallel](https://www.gnu.org/software/parallel/)  
   
-And, finally, you will need reference files. If you are analysing GABI-Kat or SALK lines, you can use the reference files provided in the folder 'references' (gunzip them).
+Finally, you will need files containing reference sequences. If you are analysing [GABI-Kat](https://www.gabi-kat.de/) or [SALK](http://signal.salk.edu/tdna_FAQs.html) lines, you can use the reference files provided in the folder 'references' (gunzip them).
 You need two files:
-- one file containing all T-DNA sequences of interest, this file is used for identification of reads containing T-DNA
-- one file containing all sequences you expect, in the files mentioned above: T-DNA, the vector backbone, A. thaliana. Mitochondria, Chloroplast and A. tumefaciens. This file is used to annotate the generated contigs and reads.
+- one file containing all T-DNA sequences of interest. This file is used for identification of reads containing T-DNA
+- one file containing all sequences you expect. In the files mentioned above: T-DNA sequences, the vector backbone, A. thaliana genome sequence, chondrome (mitochondria), plastome (chloroplast), and A. tumefaciens genome sequence. This file is used to annotate the generated contigs and reads.
 
  
   
