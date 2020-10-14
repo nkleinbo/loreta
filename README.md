@@ -43,7 +43,7 @@ Otherwise you will need to install the following::
 Finally, you will need files containing reference sequences. If you are analysing [GABI-Kat](https://www.gabi-kat.de/) or [SALK](http://signal.salk.edu/tdna_FAQs.html) lines, you can use the reference files provided in the folder 'references' (gunzip them).
 You need two files:
 - one file containing all T-DNA sequences of interest. This file is used for identification of reads containing T-DNA
-- one file containing all sequences you expect. In the files mentioned above: T-DNA sequences, the vector backbone, A. thaliana genome sequence, chondrome (mitochondria), plastome (chloroplast), and A. tumefaciens genome sequence. This file is used to annotate the generated contigs and reads.
+- one file containing all sequences you expect. In the files mentioned above: T-DNA sequences, the vector backbone, *A. thaliana* genome sequence, chondrome (mitochondria), plastome (chloroplast), and *A. tumefaciens* genome sequence. This file is used to annotate the generated contigs and reads.
 
  
   
@@ -132,7 +132,7 @@ The BLAST parameters, if you do not find what you expect. However, the default v
     
     BLAST_PARAMS = " -perc_identity 85 -evalue 1e-50"
 
-If you are working with something else then A. thaliana, you should change the genome size::
+If you are working with something else then *A. thaliana*, you should change the genome size::
 
     GENOME_SIZE=145000000
 
