@@ -1,16 +1,16 @@
 # tdna_nanopore
 
-Nanopore T-DNA Anlaysis Tool
+Nanopore T-DNA Analysis Tool
 ============================
 
-This tool extracts reads containing T-DNA out of a full genome sequencing run of Oxford Nanopore data. 
+This tool extracts reads containing T-DNA out of a full genome sequencing run of Oxford Nanopore Technologies (ONT) data. 
 It performs basically the following steps:
 - BLAST all reads vs. T-DNA sequences of interest
 - run an assembly using canu with these reads
 - annotate the resulting contigs using the reference sequence of the host species
-- annotate all reads as well
-- if available, you can search for insertions in a finished complete genome assembly (see Example call)
-- create a summary html page with png images showing the annotation
+- annotate features in all reads
+- if available, you can search for insertions in a complete genome assembly (see 'Example call')
+- create a summary HTML page with PNG images showing the annotation
 
 These results can then be inspected. For simple T-DNA insertions, the insertions are usually fully explained by the assembly and/or individual reads.
 Difficult cases might be harder to interpret, for example inverted T-DNA repeats. One repeat is usually of good quality (the downstream one), the other of bad quality. In order to resolve these cases, reads running in both directions need to be identified. 
@@ -24,7 +24,9 @@ git clone https://github.com/nkleinbo/tdna_nanopore
 ```
 
   
-In addition, you need some additional tools like BLAST etc. If you are a researcher in Germany, you can apply for a SimpleVM project in the de.NBI cloud, there is a "Nanopore Workbench" image, which contains all necessary tools to run the script.
+Some additional tools are required. If you are a researcher in Germany, you can apply for a SimpleVM project in the de.NBI cloud, there is a "Nanopore Workbench" image, which contains all necessary tools to run the script.
+
+
 Otherwise you will need to install the following::
 
 * [Python](https://www.python.org/) 3.7 or later
@@ -38,10 +40,10 @@ Otherwise you will need to install the following::
 * [bedtools](https://github.com/arq5x/bedtools2)
 * [gnu parallel](https://www.gnu.org/software/parallel/)  
   
-And, finally, you will need reference files. If you are analysing GABI-Kat or SALK lines, you can use the reference files provided in the folder 'references' (gunzip them).
+Finally, you will need files containing reference sequences. If you are analysing [GABI-Kat](https://www.gabi-kat.de/) or [SALK](http://signal.salk.edu/tdna_FAQs.html) lines, you can use the reference files provided in the folder 'references' (gunzip them).
 You need two files:
-- one file containing all T-DNA sequences of interest, this file is used for identification of reads containing T-DNA
-- one file containing all sequences you expect, in the files mentioned above: T-DNA, the vector backbone, A. thaliana. Mitochondria, Chloroplast and A. tumefaciens. This file is used to annotate the generated contigs and reads.
+- one file containing all T-DNA sequences of interest. This file is used for identification of reads containing T-DNA
+- one file containing all sequences you expect. In the files mentioned above: T-DNA sequences, the vector backbone, *A. thaliana* genome sequence, chondrome (mitochondria), plastome (chloroplast), and *A. tumefaciens* genome sequence. This file is used to annotate the generated contigs and reads.
 
  
   
@@ -51,26 +53,26 @@ Example call
 The call is as follows (fill in paths to your files/directories)
 ```bash
 python3 run_all.py 
-  -f <path to your data directory, each line needs a seperate fastq file in this directory>
-  -o <output directory for result files like fasta files and assemblies>
-  -t <location of the fasta file with your T-DNA sequences>
-  -a <fasta file with all your references for annotation>
+  -f <path to your data directory, each plant line needs a seperate FASTQ file in this directory>
+  -o <output directory for result files like FASTA files and assemblies>
+  -t <location of the FASTA file with your T-DNA sequences>
+  -a <FASTA file with all your references for annotation>
   -w <path to a directory, where the html files should be created>
   -g <path to an assembly, if you have a precomputed assembly of your sequencing run>
 
 ```
-The script will search for fastq files in the data dir (make sure, there is nothing else in it) and run an analysis for each fastq file. The prefix of the fastq file will serve as folder name for the directories in the result and web directory.
-If you provide assemblies with the -g option, make sure, that your assemblies are all stored as fasta files in the given directory and that the prefix of the fasta file matches your fastq files. For example: If you have a fasta assembly file "040A11.fasta" in the assembly directory, you need a corresponding "040A11.fastq" file in the fastq directory.
+The script will search for FASTQ files in the data dir (make sure, there is nothing else in it) and run an analysis for each FASTQ file. The prefix of the FASTQ file will serve as folder name for the directories in the result and web directory.
+If you provide assemblies with the -g option, make sure, that your assemblies are all stored as FASTA files in the given directory and that the prefix of the FASTA file matches your FASTQ files. For example: If you have a FASTA assembly file "040A11.fasta" in the assembly directory, you need a corresponding "040A11.fastq" file in the FASTQ directory.
 
 Note that, if you run with -g option, no assemblies of filtered reads are computed.
 
 Configuration
 -------------
   
-There are several places where you can configure the behaviour of the script. 
+The bevaviour of the script can be modified in the file Config.py. First of all, make sure your references are defined (see next paragraph).
 
 ### Reference sequences ###
-If you are not using our T-DNA and reference file above, you will need to add the names of your references in the dictionary in visulisation.py::
+If you are not using our T-DNA and reference sequence file above, you will need to add the names of your references in the dictionary in Config.py::
 
     BLAST_FEATURE_MAPPING = {
         "Agrobacterium_circular": "agrobac",
@@ -99,7 +101,7 @@ If you are not using our T-DNA and reference file above, you will need to add th
         "RB": "RB"
     }
 
-This is to ensure, that each annotated sequence gets the correct colour. Unknown features will get a gray colour. If You need to add all sequence names from your fasta annotation file. For example, if there is a sequence called "genome" which is your plant genome, you need to add "genome": "plant" in this dictionary. If you want to use different colours then the predefined, you can add it in this dictionary::
+This is to ensure, that each annotated sequence gets the correct colour. Unknown features will get a gray colour. If You need to add all sequence names from your fasta annotation file. For example, if there is a sequence called "genome" which is your plant genome sequence, you need to add "genome": "plant" in this dictionary. If you want to use different colours then the predefined, you can add it in this dictionary::
 
 
     COLOURS = {
@@ -119,22 +121,22 @@ This is to ensure, that each annotated sequence gets the correct colour. Unknown
 
 ### Tool behaviour ###
 
-The behaviour of the tool can be modified in several ways. The parameters are constants in the file analyse_insertion.py
+The behaviour of the tool can be modified in several ways.
 
 You can set the verbose mode and the number of CPUs/threads, that the tool can use::
 
     BE_VERBOSE = True;
     NO_CPUS = 64;
     
-The BLAST parameters, if you don't find what you expect. However, the default values should work fine for most cases::
+The BLAST parameters, if you do not find what you expect. However, the default values should work fine for most cases::
     
     BLAST_PARAMS = " -perc_identity 85 -evalue 1e-50"
 
-If you are working with something else then A. thaliana, you should change the genome size::
+If you are working with something else then *A. thaliana*, you should change the genome size::
 
     GENOME_SIZE=145000000
 
-If you want to analyse the reads that do not contain T-DNA you can choose, that the script writes such a file (ending with .notdna.fastq)::
+If you want to analyse the reads that do not contain T-DNA sequences you can choose, that the script writes such a file (ending with .notdna.fastq)::
 
     WRITE_FASTQ_WITHOUT_TDNA = False;
 
@@ -180,3 +182,8 @@ You can change the generated images by changing the following constants in visua
     FONT = "fonts/TruenoRg.otf"
 
 However, better leave it as it is. :)
+
+
+### References
+
+
