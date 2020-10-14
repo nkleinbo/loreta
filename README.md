@@ -1,6 +1,6 @@
 # tdna_nanopore
 
-Nanopore T-DNA Anlaysis Tool
+Nanopore T-DNA Analysis Tool
 ============================
 
 This tool extracts reads containing T-DNA out of a full genome sequencing run of Oxford Nanopore data. 
@@ -67,10 +67,10 @@ Note that, if you run with -g option, no assemblies of filtered reads are comput
 Configuration
 -------------
   
-There are several places where you can configure the behaviour of the script. 
+The bevaviour of the script can be modified in the file Config.py. First of all, make sure, make sure, your references are defined (see next paragraph).
 
 ### Reference sequences ###
-If you are not using our T-DNA and reference file above, you will need to add the names of your references in the dictionary in visulisation.py::
+If you are not using our T-DNA and reference file above, you will need to add the names of your references in the dictionary in Config.py::
 
     BLAST_FEATURE_MAPPING = {
         "Agrobacterium_circular": "agrobac",
@@ -119,7 +119,7 @@ This is to ensure, that each annotated sequence gets the correct colour. Unknown
 
 ### Tool behaviour ###
 
-The behaviour of the tool can be modified in several ways. The parameters are constants in the file analyse_insertion.py
+The behaviour of the tool can be modified in several ways.
 
 You can set the verbose mode and the number of CPUs/threads, that the tool can use::
 
