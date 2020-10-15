@@ -35,6 +35,11 @@ except getopt.error as err:
     print (str(err))
     sys.exit(2)
 
+fastqpath = None
+tdnafile = None
+outputpath = None
+webpath = None
+allfasta = None
 genomepath = None
     
 for currentArgument, currentValue in arguments:
