@@ -17,6 +17,18 @@ argumentList = fullCmdArguments[1:]
 unixOptions = "hf:t:o:w:a:g:"
 gnuOptions = ["help", "fastqpath=", "tdnafile=", "outputpath=", "webpath=", "allfasta="]
 
+usage = """
+usage: python3 run_all.py
+       -f <path to your data directory, each plant line needs a seperate FASTQ file in this directory>
+       -o <output directory for result files like FASTA files and assemblies>
+       -t <location of the FASTA file with your T-DNA sequences>
+       -a <FASTA file with all your references for annotation>
+       -w <path to a directory, where the html files should be created>
+       [-g <path to an assembly, if you have a precomputed assembly of your sequencing run>]
+
+example: python3 run_all.py -f input_data/ -o results/ -t references/tdna.fas -a references/all_fasta.fas -w html/     
+"""
+
 try:
     arguments, values = getopt.getopt(argumentList, unixOptions, gnuOptions)
 except getopt.error as err:
@@ -27,7 +39,8 @@ genomepath = None
     
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-h", "--help"):
-        print ("displaying help")
+        print (usage)
+        exit()
     elif currentArgument in ("-f", "--fastqpath"):
         print (("Location of fastq files: (%s)") % (currentValue))
         fastqpath = currentValue
@@ -47,7 +60,9 @@ for currentArgument, currentValue in arguments:
         print (("Location of fasta containing assemblies (instead of fastq reads): (%s)") % (currentValue))
         genomepath = currentValue
         
-
+if (fastqpath is None or tdnafile is None or outputpath is None or webpath is None or allfasta is None):
+    print (usage)
+    exit()
 
 assembly_extension = ""
 if (genomepath is not None):
