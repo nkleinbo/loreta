@@ -90,11 +90,15 @@ for f in os.listdir(fastqpath):
     fastq_dict[prefix] = os.path.join(fastqpath, f)
     
 out_dict = {}
+if not (os.path.isdir(outputpath)):
+    os.mkdir(outputpath)
 for line in input_dict:
     outdir = os.path.join(outputpath, line+assembly_extension)
     out_dict[line] = outdir
 
 web_dict = {}
+if not (os.path.isdir(webpath)):
+    os.mkdir(webpath)
 for line in input_dict:
     webdir = os.path.join(webpath, line+assembly_extension)
     web_dict[line] = webdir
