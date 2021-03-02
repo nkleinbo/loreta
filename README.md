@@ -1,6 +1,6 @@
-# tdna_nanopore
+# loreta
 
-Nanopore T-DNA Analysis Tool
+Long Read(-based) T-DNA (insertion) Analysis 
 ============================
 
 This tool extracts reads containing T-DNA out of a full genome sequencing run of Oxford Nanopore Technologies (ONT) data. 
