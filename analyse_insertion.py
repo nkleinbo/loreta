@@ -476,7 +476,7 @@ def create_contigfile_from_assembly(assemblyfile, blastfile, outdir, lineid, ext
             hit = {}
             split = line.split()
             if len(split) < 12: continue
-            if not (re.match("tig", line)): continue
+            #if not (re.match("tig", line)): continue
             (hit["qaccver"], hit["saccver"], hit["pident"], hit["length"], hit["mismatch"], hit["gapopen"], hit["qstart"], hit["qend"], hit["sstart"], hit["send"], hit["evalue"], hit["bitscore"])= split
             if(float(hit["pident"]) > 95.0 and int(hit["length"]) > 50):
                 hits.append(hit)
