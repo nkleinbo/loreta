@@ -9,7 +9,7 @@ Created on Mon Oct 14 12:30:47 2019
 #whether to be verbose or not:
 BE_VERBOSE = True;
 #no of CPUs to use at max:
-NO_CPUS = 64;
+NO_CPUS = 8;
 #BLAST parameters for annotation:
 BLAST_PARAMS = " -word_size 7 -perc_identity 70 -evalue 1e-50"
 #BLAST parameters for finding reads:
@@ -39,7 +39,7 @@ RERUN_MAPPING = False
 #Recreate filtered fastqs
 RECREATE_FASTQ = False
 #RERUN ALL
-RERUN_ALL = False
+RERUN_ALL = True
 
 #Image options:
 
