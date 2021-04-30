@@ -566,7 +566,8 @@ def create_contigfile_from_assembly(assemblyfile, blastfile, outdir, lineid, ext
     fh.close()
     contigfile = os.path.join(outdir, lineid+"_contigs.fasta")
     os.system("bedtools getfasta -fi "+assemblyfile+" -bed "+bedfile+" -fo "+contigfile)
-    return contigfile        
+    os.system("sed -i 's/:/_/g' "+contigfile)
+    return contigfile
     
    
 
