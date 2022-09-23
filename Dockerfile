@@ -7,26 +7,26 @@ the T-DNA Nanopore Analysis tool, see: https://github.com/nkleinbo/tdna_nanopore
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt update
+RUN apt-get update
 
 #Install python3, pip and Pillow:
-RUN apt install -y python3 && \
-    apt install -y python3-pip && \
+RUN apt-get install -y python3 && \
+    apt-get install -y python3-pip && \
     pip3 install Pillow
 
 #Install gnu parallel 
-RUN apt install -y parallel
+RUN apt-get install -y parallel
 
 #Install samtools
-RUN apt install -y bzip2 && \
-    apt install -y zlib1g-dev && \
-    apt install -y libncurses5-dev && \
-    apt install -y libbz2-dev && \
-    apt install -y liblzma-dev && \
-    apt install -y libcurl4-gnutls-dev && \
-    apt install -y libssl-dev && \
-    apt install -y build-essential && \
-    apt install -y wget && \
+RUN apt-get install -y bzip2 && \
+    apt-get install -y zlib1g-dev && \
+    apt-get install -y libncurses5-dev && \
+    apt-get install -y libbz2-dev && \
+    apt-get install -y liblzma-dev && \
+    apt-get install -y libcurl4-gnutls-dev && \
+    apt-get install -y libssl-dev && \
+    apt-get install -y build-essential && \
+    apt-get install -y wget && \
     wget https://github.com/samtools/samtools/releases/download/1.11/samtools-1.11.tar.bz2 && \
     tar -xf samtools-1.11.tar.bz2 && \
     rm samtools-1.11.tar.bz2 && \
@@ -38,9 +38,9 @@ RUN apt install -y bzip2 && \
     rm -rf samtools-1.11
 
 #Install minimap2
-RUN apt install -y libz-dev && \
-    apt install -y build-essential && \
-    apt install -y git && \
+RUN apt-get install -y libz-dev && \
+    apt-get install -y build-essential && \
+    apt-get install -y git && \
     git clone --branch v2.17 https://github.com/lh3/minimap2 && \
     cd minimap2 && \
     make && \
@@ -49,8 +49,8 @@ RUN apt install -y libz-dev && \
     rm -rf minimap2
 
 #Install seqtk
-RUN apt install -y build-essential && \
-    apt install -y git && \
+RUN apt-get install -y build-essential && \
+    apt-get install -y git && \
     git clone --branch v1.3 https://github.com/lh3/seqtk && \
     cd seqtk && \
     make && \
@@ -59,8 +59,8 @@ RUN apt install -y build-essential && \
     rm -rf seqtk
 
 #Install canu
-RUN apt install -y build-essential && \
-    apt install -y git && \
+RUN apt-get install -y build-essential && \
+    apt-get install -y git && \
     git clone --branch v2.1 https://github.com/marbl/canu && \
     cd canu/src && \
     make && \
@@ -69,12 +69,12 @@ RUN apt install -y build-essential && \
     ln -s /usr/local/lib/canu/build/bin/canu /usr/local/bin/canu
 
 #Install EMBOSS
-RUN apt install -y emboss
+RUN apt-get install -y emboss
 
 #Install bedtools
-RUN apt install -y python && \
-    apt install -y build-essential && \
-    apt install -y git && \
+RUN apt-get install -y python && \
+    apt-get install -y build-essential && \
+    apt-get install -y git && \
     git clone --branch v2.29.2 https://github.com/arq5x/bedtools2 && \
     cd bedtools2 && \
     make && \
@@ -89,8 +89,8 @@ RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.10.1/ncbi-blast
     rm -rf ncbi-blast-2.10.1+*
 
 #Install tdna_nanopore
-RUN apt install -y git && \
-    git clone https://github.com/nkleinbo/tdna_nanopore/ && \
-    gunzip tdna_nanopore/references/*.gz
+RUN apt-get install -y git && \
+    git clone https://github.com/nkleinbo/loreta/ && \
+    gunzip loreta/references/*.gz
 
 
