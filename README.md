@@ -20,7 +20,7 @@ Requirements
 ------------
 In order to run the tool, you need to clone the repository:
 ```bash
-git clone https://github.com/nkleinbo/tdna_nanopore
+git clone https://github.com/nkleinbo/loreta
 ```
 
   
@@ -194,26 +194,26 @@ sudo apt install docker.io
 You will need the docker file, so just clone the repository:
 
 ```bash
-git clone https://github.com/nkleinbo/tdna_nanopore
+git clone https://github.com/nkleinbo/loreta
 ```
 Then build the docker image:
 ```bash
-cd tdna_nanopore
-sudo docker build -t tdna_nanopore .
+cd loreta
+sudo docker build -t loreta .
 ```
 
 Then start the tool, you will need to mount all local directories that contain data into the container. In this example, all our data is in ~/data/ and is mounted to /data in the docker image:
 ```bash
-sudo docker run --name tdna_nanopore_container -v ~/data/:/data/ --rm -i -t tdna_nanopore bash
+sudo docker run --name loreta_container -v ~/data/:/data/ --rm -i -t loreta bash
 ```
 This will start an interactive shell inside the container with your ~/data/ (containing a folder "input_data" with your input data) directory mounted to /data. You can then go on running the tool:
 ```bash
-cd tdna_nanopore
+cd loreta
 python3 run_all.py -f /data/input_data/ -o /data/docker_results/ -t references/tdna.fas -a references/all_fasta.fas -w /data/docker_html/
 ```
 
 You could do the sam non interactively with:
 ```bash
-sudo docker run --name tdna_nanopore_container -v ~/data/:/data/ --rm -i -t tdna_nanopore python3 tdna_nanopore/run_all.py -f /data/input_data/ -o /data/docker_results/ -t tdna_nanopore/references/tdna.fas -a tdna_nanopore/references/all_fasta.fas -w /data/docker_html/
+sudo docker run --name loreta_container -v ~/data/:/data/ --rm -i -t loreta python3 loreta/run_all.py -f /data/input_data/ -o /data/docker_results/ -t loreta/references/tdna.fas -a loreta/references/all_fasta.fas -w /data/docker_html/
 ```
 
