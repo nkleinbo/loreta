@@ -11,7 +11,7 @@ RUN apt-get update
 
 #install libjpeg-dev zlib1g-dev
 RUN apt-get install -y libjpeg-dev && \
-    apt-get install -y zlib1g-dev && \
+    apt-get install -y zlib1g-dev
 
 #Install python3, pip and Pillow:
 RUN apt-get install -y python3 && \
