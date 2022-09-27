@@ -13,6 +13,9 @@ RUN apt-get update
 RUN apt-get install -y libjpeg-dev && \
     apt-get install -y zlib1g-dev
 
+#install java
+RUN apt-get install -y openjdk-11-jre
+
 #Install python3, pip and Pillow:
 RUN apt-get install -y python3 && \
     apt-get install -y python3-pip && \
