@@ -53,9 +53,9 @@ def run_blast(fastqfile, blastfile, dbfile, nofilters=False):
             blastparams = ""
         else:
             blastparams = BLAST_PARAMS
-        blastcommand = "seqtk seq -A "+fastqfile+" |  parallel --citation -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+blastparams+" > "+blastfile
+        blastcommand = "seqtk seq -A "+fastqfile+" |  parallel --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+blastparams+" > "+blastfile
         if(extension == ".fasta"):
-            blastcommand = "cat "+fastqfile+" |  parallel --citation -S : --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+blastparams+" > "+blastfile
+            blastcommand = "cat "+fastqfile+" |  parallel --block 10M --recstart '>' --pipe blastn -query - -db "+dbfile+" -outfmt 6 "+blastparams+" > "+blastfile
         os.system(blastcommand)
         if BE_VERBOSE:  "Done BLASTING "+fastqfile+"."
     else:
