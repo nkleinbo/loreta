@@ -12,7 +12,7 @@ RUN apt-get update
 #install libjpeg-dev zlib1g-dev
 RUN apt-get install -y libjpeg-dev && \
     apt-get install -y zlib1g-dev && \
-    apt-get install -y libfreetype-dev
+    apt-get install -y libfreetype6-dev
 
 #install java
 RUN apt-get install -y openjdk-11-jre
